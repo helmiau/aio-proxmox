@@ -27,9 +27,18 @@ log_to_journald() {
     local level="$1"
     local message="$2"
     local tag="homelab"
+    local priority="info"
+
+    case "$level" in
+        DEBUG)   priority="debug" ;;
+        INFO)    priority="info" ;;
+        SUCCESS) priority="info" ;;
+        WARN)    priority="warning" ;;
+        ERROR)   priority="err" ;;
+    esac
 
     if command -v systemd-cat >/dev/null 2>&1; then
-        echo "$message" | systemd-cat -t "$tag" -p "$level"
+        echo "$message" | systemd-cat -t "$tag" -p "$priority"
     fi
 }
 
