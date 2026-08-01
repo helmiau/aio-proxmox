@@ -8,10 +8,15 @@
 
 set -euo pipefail
 
+# --- Paths -----------------------------------------------------
+# Get repo root relative to this library file
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$LIB_DIR/.." && pwd)"
+
 # --- Constants -------------------------------------------------
-ENV_FILE="${SCRIPT_DIR}/../ENVIRONMENT"
-ENV_EXAMPLE="${SCRIPT_DIR}/../ENVIRONMENT.example"
-ENV_BACKUP_DIR="${SCRIPT_DIR}/../.env-backups"
+ENV_FILE="${REPO_ROOT}/ENVIRONMENT"
+ENV_EXAMPLE="${REPO_ROOT}/ENVIRONMENT.example"
+ENV_BACKUP_DIR="${REPO_ROOT}/.env-backups"
 MAX_BACKUPS=3
 
 # --- Helper: Timestamp -----------------------------------------
