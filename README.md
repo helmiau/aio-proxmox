@@ -1,4 +1,4 @@
-# aio-proxmox — Debian → Proxmox VE Homelab Installer v4.0
+﻿# aio-proxmox — Debian → Proxmox VE Homelab Installer v4.0
 
 ## Overview
 
@@ -12,32 +12,34 @@ Automated installer for a **personal homelab** on **Intel J1900 Mini PC (8GB RAM
 
 ## Quick Start
 
-```bash
+`ash
 # 1. Install Debian 13 minimal (netinst) with 26 GiB root + 1 GiB swap
 # 2. Clone repo
 git clone https://github.com/your-username/aio-proxmox
 cd aio-proxmox
 # 3. Copy and edit ENVIRONMENT
-cp ENVIRONMENT.v4.example ENVIRONMENT
+cp ENVIRONMENT.example ENVIRONMENT
 vim ENVIRONMENT
 # 4. Run installer
 bash install
-```
+`
 
 ## Features
 
-- **Unified lifecycle**: `install`, `uninstall`, `update`, `reinstall`, `status`, `start`, `stop`, `restart` per service
-- **Comma-separated multi-install**: `install 9router,hermes,headroom`
+- **Unified lifecycle**: install, uninstall, update, einstall, status, start, stop, estart per service
+- **Comma-separated multi-install**: install 9router,hermes,headroom
 - **Idempotent & re-runnable**: safe to run multiple times
 - **Port/IP Registry**: single source of truth for allocations
-- **Config-as-template**: render from `/config/<service>/` templates
+- **Config-as-template**: render from /config/<service>/ templates
 - **Debian upgrade**: 13.5.0 → 13.6.0 (automatic + standalone script)
 - **Proxmox repair**: reinstall PVE without losing LXC/VM
+- **Alpine Linux support**: lightweight base image option
+- **Docker services**: run Docker containers inside LXC
 
 ## Service List
 
 | Service | Default Target | Notes |
-|--------|---------------|-------|
+|---------|---------------|-------|
 | 9Router | LXC | AI API gateway |
 | Headroom AI | LXC (co-located with 9Router) | Context compression |
 | Hermes Agent | LXC | AI agent runtime + MCP |
@@ -58,12 +60,12 @@ bash install
 
 - **PRD v4.0**: [PRD.md](PRD.md) — full architecture, principles, requirements
 - **ENVIRONMENT**: [ENVIRONMENT.v4.example](ENVIRONMENT.v4.example) — all variables
-- **Scripts**: `scripts/` — numbered steps + service scripts
-- **Libs**: `lib/` — shared helpers (common, service-actions, lxc, logging)
+- **Scripts**: scripts/ — numbered steps + service scripts
+- **Libs**: lib/ — shared helpers (common, service-actions, lxc, logging)
 
 ## Usage
 
-```bash
+`ash
 # Interactive menu
 ./install
 
@@ -78,7 +80,7 @@ homelab-updater 9router hermes
 
 # Lint & test
 make lint test
-```
+`
 
 ## License
 
