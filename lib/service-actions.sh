@@ -39,7 +39,8 @@ dispatch_action() {
 # Install a service
 install_service() {
     local service_name="$1"
-    local install_mode="${!INSTALL_${service_name^^}}"  # INSTALL_<NAME> from environment
+    local var_name="INSTALL_${service_name^^}"
+    local install_mode="${!var_name}"
 
     if [[ -z "$install_mode" ]]; then
         install_mode="ask"
@@ -56,7 +57,8 @@ install_service() {
             "svc-${service_name}.sh" install
             ;;
         lxc-existing)
-            local target_ctid="${!TARGET_${service_name^^}_CTID}"  # TARGET_<NAME>_CTID from environment
+            local var_name="TARGET_${service_name^^}_CTID"
+            local target_ctid="${!var_name}"  # TARGET_<NAME>_CTID from environment
             if [[ -z "$target_ctid" ]]; then
                 log_error "TARGET_${service_name^^}_CTID not set for lxc-existing mode"
                 return 1
@@ -107,8 +109,10 @@ uninstall_service() {
         log_info "Uninstalling $service_name"
         "svc-${service_name}.sh" uninstall
         # Release allocated resources
-        local ip="${!SVC_${service_name^^}_IP}"
-        local port="${!SVC_${service_name^^}_PORT}"
+        local var_ip="SVC_${service_name^^}_IP"
+        local var_port="SVC_${service_name^^}_PORT"
+        local ip="${!var_ip}"
+        local port="${!var_port}"
         if [[ -n "$ip" && -n "$port" ]]; then
             release_resource "$ip" "$port" "$service_name"
         fi
@@ -166,15 +170,25 @@ get_service_status() {
 # Create LXC container
 create_lxc_container() {
     local service_name="$1"
-    local hostname="${!LXC_${service_name^^}_HOSTNAME}"
-    local ip="${!LXC_${service_name^^}_IP}"
-    local cidr="${!LXC_${service_name^^}_CIDR}"
-    local gateway="${!LXC_${service_name^^}_GATEWAY}"
-    local ram_mb="${!LXC_${service_name^^}_RAM_MB}"
-    local swap_mb="${!LXC_${service_name^^}_SWAP_MB}"
-    local disk_gb="${!LXC_${service_name^^}_DISK_GB}"
-    local cores="${!LXC_${service_name^^}_CORES}"
-    local bridge="${!LXC_${service_name^^}_BRIDGE}"
+    local var_hostname="LXC_${service_name^^}_HOSTNAME"
+    local var_ip="LXC_${service_name^^}_IP"
+    local var_cidr="LXC_${service_name^^}_CIDR"
+    local var_gateway="LXC_${service_name^^}_GATEWAY"
+    local var_ram_mb="LXC_${service_name^^}_RAM_MB"
+    local var_swap_mb="LXC_${service_name^^}_SWAP_MB"
+    local var_disk_gb="LXC_${service_name^^}_DISK_GB"
+    local var_cores="LXC_${service_name^^}_CORES"
+    local var_bridge="LXC_${service_name^^}_BRIDGE"
+    
+    local hostname="${!var_hostname}"
+    local ip="${!var_ip}"
+    local cidr="${!var_cidr}"
+    local gateway="${!var_gateway}"
+    local ram_mb="${!var_ram_mb}"
+    local swap_mb="${!var_swap_mb}"
+    local disk_gb="${!var_disk_gb}"
+    local cores="${!var_cores}"
+    local bridge="${!var_bridge}"
 
     if [[ -z "$hostname" || -z "$ip" || -z "$cidr" || -z "$gateway" ]]; then
         log_error "Missing LXC configuration for $service_name"
