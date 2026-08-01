@@ -1,0 +1,89 @@
+#!/bin/bash
+# updater — update services or repo
+set -euo pipefail
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$REPO_ROOT/lib/logging.sh"
+source "$REPO_ROOT/lib/common.sh"
+source "$REPO_ROOT/lib/service-actions.sh"
+source "$REPO_ROOT/lib/env-manager.sh"
+
+# Auto-init ENV if missing
+init_env
+load_env
+
+usage() {
+    cat <<EOF
+Usage: $0 [OPTIONS] <service1> [service2] ...
+
+Options:
+  -a, --all       Update all installed services
+  -l, --list      List installed services
+  -h, --help      Show this help
+
+Examples:
+  $0 9router hermes
+  $0 --all
+  $0 --list
+EOF
+}
+
+list_installed() {
+    local status_file="/var/lib/homelab/service_status.json"
+    if [[ -f "$status_file" ]]; then
+        jq -r '.services | to_entries[] | select(.value.installed == true) | .key' "$status_file" 2>/dev/null || true
+    fi
+}
+
+update_service() {
+    local service="$1"
+    local script="$REPO_ROOT/scripts/svc-${service}.sh"
+    
+    if [[ ! -f "$script" ]]; then
+        log_error "Service script not found: $script"
+        return 1
+    fi
+    
+    log_info "Updating $service..."
+    bash "$script" update
+}
+
+main() {
+    local update_all=false
+    local show_list=false
+    local services=()
+    
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -a|--all) update_all=true; shift ;;
+            -l|--list) show_list=true; shift ;;
+            -h|--help) usage; exit 0 ;;
+            -*) log_error "Unknown option: $1"; usage; exit 1 ;;
+            *) services+=("$1"); shift ;;
+        esac
+    done
+    
+    if [[ "$show_list" == true ]]; then
+        log_info "Installed services:"
+        list_installed | while read -r svc; do echo "  - $svc"; done
+        exit 0
+    fi
+    
+    if [[ "$update_all" == true ]]; then
+        services=($(list_installed))
+        if [[ ${#services[@]} -eq 0 ]]; then
+            log_warn "No installed services found"
+            exit 0
+        fi
+    fi
+    
+    if [[ ${#services[@]} -eq 0 ]]; then
+        usage
+        exit 1
+    fi
+    
+    for s in "${services[@]}"; do
+        update_service "$s"
+    done
+}
+
+main "$@"

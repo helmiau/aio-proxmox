@@ -79,7 +79,7 @@ bash install
 ./scripts/03-install-proxmox-ve9.sh repair
 
 # Update services
-homelab-updater 9router hermes
+updater 9router hermes
 
 # Lint & test
 make lint test

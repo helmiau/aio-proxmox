@@ -5,14 +5,16 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$REPO_ROOT/lib/logging.sh"
 source "$REPO_ROOT/lib/common.sh"
 source "$REPO_ROOT/lib/service-actions.sh"
+source "$REPO_ROOT/lib/env-manager.sh"
 
-[[ -f "$REPO_ROOT/ENVIRONMENT" ]] || { log_error "Missing ENVIRONMENT"; exit 1; }
-load_env "$REPO_ROOT/ENVIRONMENT"
+# P8: Auto-init ENVIRONMENT if missing
+init_env
+load_env
 
 show_menu() {
   clear
   echo "===================================================="
-  echo "   aio-proxmox v4.0 — Homelab Installer"
+  echo "   aio-proxmox v4.1 — Homelab Installer"
   echo "===================================================="
   echo "0)  Check Environment"
   echo "1)  Debian Base Setup (incl. 13.6.0 upgrade)"
