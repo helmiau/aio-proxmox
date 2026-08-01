@@ -1,4 +1,4 @@
-# aio-proxmox — Debian → Proxmox VE Homelab Installer v4.0
+﻿# aio-proxmox — Debian → Proxmox VE Homelab Installer v4.0
 
 ## Overview
 
@@ -15,10 +15,10 @@ Automated installer for a **personal homelab** on **Intel J1900 Mini PC (8GB RAM
 ```bash
 # 1. Install Debian 13 minimal (netinst) with 26 GiB root + 1 GiB swap
 # 2. Clone repo
-git clone https://github.com/your-username/aio-proxmox
+git clone https://github.com/helmiau/aio-proxmox
 cd aio-proxmox
 # 3. Copy and edit ENVIRONMENT
-cp ENVIRONMENT.v4.example ENVIRONMENT
+cp ENVIRONMENT.example ENVIRONMENT
 vim ENVIRONMENT
 # 4. Run installer
 bash install
