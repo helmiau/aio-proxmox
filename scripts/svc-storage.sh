@@ -7,6 +7,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$REPO_ROOT/lib/logging.sh"
 source "$REPO_ROOT/lib/common.sh"
 source "$REPO_ROOT/lib/service-actions.sh"
+source "$REPO_ROOT/lib/env-manager.sh"
 
 [[ -f "$REPO_ROOT/ENVIRONMENT" ]] && load_env "$REPO_ROOT/ENVIRONMENT"
 

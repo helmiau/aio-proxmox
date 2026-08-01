@@ -146,6 +146,7 @@ CLOUDFLARED_TOKEN=''
 TAILSCALE_AUTHKEY=''
 
 # --- MIHOMO ---
+# (DEFAULT)
 MIHOMO_VERSION='1.19.27'
 MIHOMO_BIN_URL="https://github.com/MetaCubeX/mihomo/releases/download/v${MIHOMO_VERSION}/mihomo-linux-amd64-compatible-v${MIHOMO_VERSION}.gz"
 MIHOMO_PORT_MIXED='7893'
@@ -161,6 +162,7 @@ MIHOMO_DASHBOARD_BRANCH='gh-pages'
 MIHOMO_UI_URL='https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pages.zip'
 
 # --- 9ROUTER ---
+# (DEFAULT)
 ROUTER9_CTID='101'
 ROUTER9_HOSTNAME='9router'
 ROUTER9_IP='10.10.40.10'
@@ -182,6 +184,7 @@ ROUTER9_CLOUDFLARE_TUNNEL='no'
 NODE_MAJOR='22'
 
 # --- HEADROOM (co-locate 9Router) ---
+# (DEFAULT)
 HEADROOM_EXTRAS='proxy,code,ml,mcp'
 HEADROOM_CTID="${ROUTER9_CTID}"
 HEADROOM_IP="${ROUTER9_IP}"
@@ -189,6 +192,7 @@ HEADROOM_PORT='8787'
 HEADROOM_AUTH=''
 
 # --- HERMES AGENT ---
+# (DEFAULT)
 HERMES_CTID='102'
 HERMES_HOSTNAME='hermes-agent'
 HERMES_IP='10.10.40.20'
@@ -207,6 +211,7 @@ TELEGRAM_BOT_TOKEN=''
 TELEGRAM_ALLOWED_USER_IDS=''
 
 # --- HERMES WEBUI ---
+# (DEFAULT)
 HERMES_WEBUI_CTID='103'
 HERMES_WEBUI_HOSTNAME='hermes-webui'
 HERMES_WEBUI_IP='10.10.40.30'
@@ -224,6 +229,7 @@ HERMES_HOME_DIR='/var/lib/hermes-webui/.hermes'
 HERMES_CONFIG_PATH='/var/lib/hermes-webui/.hermes/config.yaml'
 
 # --- TTYD ---
+# (DEFAULT)
 TTYD_VERSION='latest'
 TTYD_BIND='127.0.0.1'
 TTYD_PORT='7681'
@@ -233,6 +239,7 @@ TTYD_SHELL='/bin/bash'
 TTYD_ENABLE_SERVICE='yes'
 
 # --- OH MY ZSH ---
+# (DEFAULT)
 OHMYZSH_USERS='root'
 OHMYZSH_THEME='robbyrussell'
 OHMYZSH_PLUGINS='git sudo history systemd docker npm node zsh-autosuggestions zsh-syntax-highlighting'
@@ -240,6 +247,7 @@ OHMYZSH_SET_DEFAULT_SHELL='yes'
 OHMYZSH_INSTALL_PLUGINS='yes'
 
 # --- STORAGE MANAGER ---
+# (DEFAULT)
 STORAGE_MANAGER_CTID='104'
 STORAGE_MANAGER_HOSTNAME='storage-manager'
 STORAGE_MANAGER_IP='10.10.40.40'
@@ -266,10 +274,12 @@ SAMBA_BIND_INTERFACES_ONLY='yes'
 SAMBA_ALLOWED_SUBNET='100.64.0.0/10'
 
 # --- FASTFETCH ---
+# (DEFAULT)
 FASTFETCH_PRESET='homelab'
 FASTFETCH_SHOW_ON_LOGIN='yes'
 
 # --- COPYPARTY ---
+# (DEFAULT)
 COPYPARTY_CTID='105'
 COPYPARTY_HOSTNAME='copyparty'
 COPYPARTY_IP='10.10.40.50'

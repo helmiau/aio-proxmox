@@ -8,6 +8,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$REPO_ROOT/lib/logging.sh"
 source "$REPO_ROOT/lib/common.sh"
 source "$REPO_ROOT/lib/service-actions.sh"
+source "$REPO_ROOT/lib/env-manager.sh"
 
 [[ -f "$REPO_ROOT/ENVIRONMENT" ]] && load_env "$REPO_ROOT/ENVIRONMENT"
 
@@ -126,6 +127,9 @@ unregister_registry() {
 
 action_install() {
     log_service "Starting install (mode: ${HERMES_WEBUI_INSTALL_MODE:-ask})"
+    
+    # P8: Interactive prompt if ENV is DEFAULT
+    prompt_service_env "HERMES_WEBUI"
     
     if is_service_installed "$SERVICE_NAME"; then
         log_service "Already installed, skipping"

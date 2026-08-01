@@ -7,9 +7,13 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$REPO_ROOT/lib/logging.sh"
 # shellcheck source=../lib/common.sh
 source "$REPO_ROOT/lib/common.sh"
+# shellcheck source=../lib/env-manager.sh
+source "$REPO_ROOT/lib/env-manager.sh"
 
-ENV_FILE="${1:-$REPO_ROOT/ENVIRONMENT}"
-[[ -f "$ENV_FILE" ]] || { log_error "Missing $ENV_FILE — cp ENVIRONMENT.v4.example ENVIRONMENT"; exit 1; }
-load_env "$ENV_FILE"
+# 1. Auto-init ENVIRONMENT if missing
+init_env
+
+# 2. Load and validate
+load_env
 validate_env
 log_info "ENV OK: $ENV_FILE"

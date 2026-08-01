@@ -1,4 +1,4 @@
-﻿# aio-proxmox — Debian → Proxmox VE Homelab Installer v4.1
+﻿# aio-proxmox — Debian → Proxmox VE Homelab Installer v4.0
 
 ## Overview
 
@@ -17,7 +17,10 @@ Automated installer for a **personal homelab** on **Intel J1900 Mini PC (8GB RAM
 # 2. Clone repo
 git clone https://github.com/helmiau/aio-proxmox
 cd aio-proxmox
-# 3. Run installer (ENVIRONMENT will be auto-initialized)
+# 3. Copy and edit ENVIRONMENT
+cp ENVIRONMENT.example ENVIRONMENT
+vim ENVIRONMENT
+# 4. Run installer
 bash install
 ```
 
@@ -30,14 +33,6 @@ bash install
 - **Config-as-template**: render from `/config/<service>/` templates
 - **Debian upgrade**: 13.5.0 → 13.6.0 (automatic + standalone script)
 - **Proxmox repair**: reinstall PVE without losing LXC/VM
-- **ENV Manager (P8)**: auto-init ENVIRONMENT, interactive prompts, backups, and file protection
-
-## ENV Manager (P8) — New in v4.1
-- **Auto-init**: First run copies `ENVIRONMENT.example` → `ENVIRONMENT` with header marker.
-- **Interactive prompts**: When installing a service, if its ENV section is `(DEFAULT)`, prompt user for values.
-- **Progressive config**: ENV updated only for services being installed.
-- **Backup strategy**: Before any ENV modification, backup to `ENVIRONMENT.bak.<timestamp>` (max 3 kept).
-- **File protection**: `ENVIRONMENT` file is never deleted — only its content is edited.
 
 ## Service List
 
@@ -61,10 +56,10 @@ bash install
 
 ## Documentation
 
-- **PRD v4.1**: [PRD.md](PRD.md) — full architecture, principles, requirements
-- **ENVIRONMENT**: [ENVIRONMENT.example](ENVIRONMENT.example) — all variables
+- **PRD v4.0**: [PRD.md](PRD.md) — full architecture, principles, requirements
+- **ENVIRONMENT**: [ENVIRONMENT.v4.example](ENVIRONMENT.v4.example) — all variables
 - **Scripts**: `scripts/` — numbered steps + service scripts
-- **Libs**: `lib/` — shared helpers (common, service-actions, lxc, logging, env-manager)
+- **Libs**: `lib/` — shared helpers (common, service-actions, lxc, logging)
 
 ## Usage
 
@@ -88,3 +83,4 @@ make lint test
 ## License
 
 GPL-3.0 — see [LICENSE](LICENSE)
+
