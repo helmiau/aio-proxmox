@@ -25,6 +25,7 @@ show_menu() {
   echo "6)  Repair/Reinstall Proxmox"
   echo "7)  Upgrade Debian (Standalone)"
   echo "8)  Update Services"
+  echo "9)  Update Repo (git pull)"
   echo "q)  Quit"
   echo "----------------------------------------------------"
 }
@@ -49,6 +50,7 @@ while true; do
     6) bash "$REPO_ROOT/scripts/03-install-proxmox-ve9.sh" repair ;;
     7) bash "$REPO_ROOT/scripts/upgrade-debian.sh" ;;
     8) bash "$REPO_ROOT/updater" ;;
+    9) git -C "$REPO_ROOT" pull ;;
     q) exit 0 ;;
     *) echo "Invalid option" ;;
   esac
