@@ -52,8 +52,14 @@ case "$MODE" in
     # Data under /var/lib/vz, /etc/pve (if cluster FS ok) kept; reinstall packages only
     install_pve_repos
     apt-get install -y --reinstall proxmox-ve pve-manager qemu-server lxc-pve || true
-    systemctl restart pveproxy pvedaemon pvestatd 2>/dev/null || true
-    log_info "PVE $MODE done — verify: pveversion; pct list; qm list"
+    systemctl restart pveproxy pvedaemon pvestatd pvescheduler 2>/dev/null || true
+    # Verify services are running
+    if ! systemctl is-active --quiet pveproxy pvedaemon pvestatd pvescheduler 2>/dev/null; then
+        log_warn "Some Proxmox services may not be running properly"
+        log_info "PVE $MODE done — verify: pveversion; pct list; qm list"
+    else
+        log_info "PVE $MODE done — verify: pveversion; pct list; qm list"
+    fi
     ;;
   *)
     log_error "Usage: $0 [install|repair|reinstall]"
