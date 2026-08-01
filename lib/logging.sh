@@ -78,6 +78,10 @@ log_error() {
     log "ERROR" "$1"
 }
 
+log_success() {
+    log "SUCCESS" "$1"
+}
+
 # Log with service context
 log_service() {
     local action="$1"
