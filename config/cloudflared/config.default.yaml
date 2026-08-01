@@ -1,0 +1,14 @@
+# Cloudflare Tunnel Configuration
+# Source: https://developers.cloudflare.com/cloudflare-one/connections/connect-apps/
+
+tunnel: ${CLOUDFLARED_TUNNEL_ID:-}
+credentials-file: /etc/cloudflared/creds.json
+metrics: 0.0.0.0:2000
+no-autoupdate: true
+
+ingress:
+  - hostname: "*.nas.example.com"
+    service: http://${STORAGE_MANAGER_IP:-10.10.40.40}:${FILEBROWSER_PORT:-8081}
+  - hostname: "*.hermes.example.com"
+    service: http://${HERMES_IP:-10.10.40.20}:${HERMES_PORT:-8000}
+  - service: http_status:404

@@ -1,0 +1,26 @@
+# Headroom AI Configuration
+# Source: https://github.com/nickbild/headroom-ai
+
+host: ${HEADROOM_HOST:-0.0.0.0}
+port: ${HEADROOM_PORT:-8080}
+log_level: ${HEADROOM_LOG_LEVEL:-info}
+
+# Proxy mode
+proxy:
+  enabled: ${HEADROOM_PROXY_ENABLED:-true}
+  upstream_url: ${HEADROOM_UPSTREAM_URL:-http://10.10.40.10:8787}
+
+# Code mode
+code:
+  enabled: ${HEADROOM_CODE_ENABLED:-true}
+  max_context_tokens: ${HEADROOM_MAX_CONTEXT_TOKENS:-128000}
+
+# ML mode
+ml:
+  enabled: ${HEADROOM_ML_ENABLED:-true}
+  model_cache_dir: ${HEADROOM_MODEL_CACHE_DIR:-/var/lib/headroom/models}
+
+# MCP mode
+mcp:
+  enabled: ${HEADROOM_MCP_ENABLED:-true}
+  mcp_port: ${HEADROOM_MCP_PORT:-8081}

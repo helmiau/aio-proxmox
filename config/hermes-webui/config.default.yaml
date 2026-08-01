@@ -1,0 +1,11 @@
+# Hermes WebUI Configuration
+# Source: https://github.com/nesquena/hermes-webui
+
+webui:
+  host: ${HERMES_WEBUI_HOST:-0.0.0.0}
+  port: ${HERMES_WEBUI_PORT:-3000}
+  data_dir: ${HERMES_WEBUI_DATA_DIR:-/var/lib/hermes-webui}
+  agent_mode: ${HERMES_WEBUI_AGENT_MODE:-auto}
+  auto_install: ${HERMES_WEBUI_AUTO_INSTALL:-1}
+  agent_dir: ${HERMES_WEBUI_AGENT_DIR:-}
+  home_dir: ${HERMES_HOME_DIR:-/var/lib/hermes-webui/.hermes}

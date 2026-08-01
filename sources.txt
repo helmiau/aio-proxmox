@@ -1,0 +1,138 @@
+################
+9router
+################
+- https://github.com/decolua/9router
+- https://9router.com/
+- https://blog.danhthanh.dev/en/blog/cai-dat-9router-api-proxy-tren-vps/
+- https://www.npmjs.com/package/9router
+
+################
+Hermes Agent
+################
+- https://github.com/nousresearch/hermes-agent
+- https://hermes-agent.nousresearch.com/docs/getting-started/installation
+- https://blog.margrop.net/en/post/openclaw-hermesagent-best-home-proxmoxve/
+- https://hermes-agent.org/#quickstart
+
+################
+Headroom AI  [proxy]
+################
+- https://github.com/headroomlabs-ai/headroom
+- https://headroomlabs-ai.github.io/headroom/
+- https://headroomlabs-ai.github.io/headroom/quickstart/
+- https://tosea.ai/blog/how-to-use-headroom-context-compression-guide
+- https://knightli.com/en/2026/06/06/headroom-ai-context-compression/
+- https://dev.to/arshtechpro/headroom-cut-your-llm-token-usage-by-up-to-95-without-changing-your-answers-5g06
+- https://github.com/headroomlabs-ai/headroom/releases
+- Headroom Install, update, reinstall Method= pip install "headroom-ai[proxy,mcp,memory,code,ml]"
+- pip install "headroom-ai[proxy,ml,code,mcp]"
+- run headroom with: headroom proxy --port 8787 --memory
+
+################
+Cloudflared
+################
+- https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/
+- https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/update-cloudflared/
+- https://pkg.cloudflare.com/index.html
+- https://github.com/tteck/Proxmox/blob/main/install/cloudflared-install.sh
+# Add cloudflare gpg key
+sudo mkdir -p --mode=0755 /usr/share/keyrings
+curl -fsSL https://pkg.cloudflare.com/cloudflare-public-v2.gpg | sudo tee /usr/share/keyrings/cloudflare-public-v2.gpg >/dev/null
+# Add this repo to your apt repositories
+echo 'deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.cloudflare.com/cloudflared any main' | sudo tee /etc/apt/sources.list.d/cloudflared.list
+# install cloudflared
+sudo apt-get update && sudo apt-get install cloudflared
+
+################
+Mihomo (Metacubex Dashboard and Clash TUI Dashboard)
+################
+- https://github.com/MetaCubeX/mihomo
+- https://github.com/MetaCubeX/metacubexd
+- https://wiki.metacubex.one/
+- https://github.com/helmiau/clashrules/tree/main/rule_provider
+- https://github.com/helmiau/clashrules/blob/main/README.md
+- https://wiki.metacubex.one/en/config/proxy-providers/
+- https://wiki.metacubex.one/en/config/proxy-groups/load-balance/
+- https://wiki.metacubex.one/en/config/rule-providers/
+- https://github.com/JohanChane/clashtui
+
+################
+File Browser Quantum (Apache 2.0 — Gratis)
+################
+- https://filebrowserquantum.com/en/
+- https://filebrowserquantum.com/en/docs/integrations/office/about/
+- https://filebrowserquantum.com/en/docs/features/webdav/
+- https://raw.githubusercontent.com/gtsteffaniak/filebrowser/refs/heads/main/frontend/public/config.generated.yaml
+- https://github.com/gtsteffaniak/filebrowser
+- https://filebrowserquantum.com/en/docs/getting-started/linux/
+
+################
+Hermes WebUI
+################
+- https://github.com/nesquena/hermes-webui
+- https://get-hermes.ai/setup/#server
+
+################
+Tailscale
+################
+- https://tailscale.com/docs/install/debian/debian-trixie
+- https://tailscale.com/docs/install/linux
+- https://tailscale.com/docs/install/linux
+- https://tailscale.com/docs/integrations/proxmox
+
+################
+TTYD
+################
+- https://github.com/tsl0922/ttyd
+- https://tsl0922.github.io/ttyd/
+- https://www.tecmint.com/ttyd-share-linux-terminal-over-web/
+- https://medium.com/@linz07m/share-your-terminal-over-the-web-try-ttyd-9b81fa0d673a
+- https://formulae.brew.sh/formula/ttyd
+
+################
+Oh My ZSH
+################
+- https://ohmyz.sh/#install
+- https://github.com/romkatv/powerlevel10k#oh-my-zsh
+- https://github.com/zsh-users/zsh-syntax-highlighting
+- https://github.com/zsh-users/zsh-autosuggestions
+- https://phzsantos.github.io/posts/Oh-My-Zsh!-Install-and-Config-Guide/
+- https://linuxcapable.com/how-to-install-zsh-on-debian-linux/
+- https://dev.to/harry_tanama_51571ebf90b6/install-and-setup-oh-my-zsh-2079
+- https://github.com/ohmyzsh/ohmyzsh/wiki/Installing-ZSH
+- https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
+
+################
+Fastfetch
+################
+# Fastfetch (pengganti aktif — ditulis dalam C, lebih cepat)
+- https://github.com/fastfetch-cli/fastfetch
+- https://itsfoss.com/neofetch-alternatives/
+
+################
+Copyparty (NAS)
+################
+- https://github.com/9001/copyparty
+
+################
+MikroTik CHR Patched
+################
+Notes: Use chr-7.xx.x-legacy-bios.qcow2.zip for default image
+- https://github.com/elseif/MikroTikPatch
+- https://mikrotik.ltd/
+
+################
+Health Check (svc-health.sh)
+################
+# [INTERNAL - custom monitoring script, no external source]
+
+################
+xray panel server (mini pc juga akan digunakan sebagai server VPN vless, vmess, shadowsocks, trojan, dll)
+################
+https://docs.sanaei.dev/
+https://docs.sanaei.dev/docs/
+https://github.com/MHSanaei/3x-ui
+https://github.com/MHSanaei/3x-ui/blob/main/README.md
+
+Another sources
+- https://github.com/tjengbudi/proxmox-debian13

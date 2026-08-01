@@ -1,0 +1,23 @@
+{
+  "port": ${9ROUTER_PORT:-8787},
+  "host": "${9ROUTER_HOST:-0.0.0.0}",
+  "logLevel": "${9ROUTER_LOG_LEVEL:-info}",
+  "providers": {
+    "openai": {
+      "apiKey": "${OPENAI_API_KEY:-}",
+      "baseURL": "${OPENAI_BASE_URL:-https://api.openai.com/v1}"
+    },
+    "anthropic": {
+      "apiKey": "${ANTHROPIC_API_KEY:-}",
+      "baseURL": "${ANTHROPIC_BASE_URL:-https://api.anthropic.com}"
+    },
+    "google": {
+      "apiKey": "${GOOGLE_API_KEY:-}",
+      "baseURL": "${GOOGLE_BASE_URL:-https://generativelanguage.googleapis.com}"
+    }
+  },
+  "rateLimit": {
+    "enabled": ${9ROUTER_RATE_LIMIT_ENABLED:-true},
+    "maxRequestsPerMinute": ${9ROUTER_RATE_LIMIT_RPM:-60}
+  }
+}

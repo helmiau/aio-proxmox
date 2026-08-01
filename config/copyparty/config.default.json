@@ -1,0 +1,11 @@
+{
+  "port": ${COPYPARTY_PORT:-8082},
+  "password": "${COPYPARTY_PASSWORD:-changeme123}",
+  "root": "/srv/storage",
+  "log": "/var/log/copyparty.log",
+  "logLevel": "info",
+  "allowUpload": true,
+  "allowDelete": true,
+  "allowCreate": true,
+  "allowRename": true
+}

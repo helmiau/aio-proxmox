@@ -1,0 +1,14 @@
+# Hermes Agent Configuration
+# Source: https://github.com/nousresearch/hermes-agent
+
+agent:
+  host: ${HERMES_HOST:-0.0.0.0}
+  port: ${HERMES_PORT:-8000}
+  mcp_port: ${HERMES_MCP_PORT:-8001}
+  skip_browser: ${HERMES_SKIP_BROWSER:-yes}
+  model_id: ${HERMES_MODEL_ID:-}
+  openai_base_url: ${HERMES_OPENAI_BASE_URL:-http://10.10.40.10:8787}
+
+telegram:
+  bot_token: ${TELEGRAM_BOT_TOKEN:-}
+  allowed_user_ids: ${TELEGRAM_ALLOWED_USER_IDS:-}

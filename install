@@ -1,0 +1,52 @@
+#!/bin/bash
+# install — main interactive installer for aio-proxmox v4.0
+set -euo pipefail
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "$REPO_ROOT/lib/logging.sh"
+source "$REPO_ROOT/lib/common.sh"
+source "$REPO_ROOT/lib/service-actions.sh"
+
+[[ -f "$REPO_ROOT/ENVIRONMENT" ]] || { log_error "Missing ENVIRONMENT"; exit 1; }
+load_env "$REPO_ROOT/ENVIRONMENT"
+
+show_menu() {
+  clear
+  echo "===================================================="
+  echo "   aio-proxmox v4.0 — Homelab Installer"
+  echo "===================================================="
+  echo "0)  Check Environment"
+  echo "1)  Debian Base Setup (incl. 13.6.0 upgrade)"
+  echo "2)  Check Root Size (26 GiB)"
+  echo "3)  Install Proxmox VE 9"
+  echo "4)  Configure Bridges & NAT"
+  echo "5)  Install Services (Comma-separated)"
+  echo "6)  Repair/Reinstall Proxmox"
+  echo "7)  Upgrade Debian (Standalone)"
+  echo "q)  Quit"
+  echo "----------------------------------------------------"
+}
+
+while true; do
+  show_menu
+  read -r -p "Select option: " opt
+  case "$opt" in
+    0) bash "$REPO_ROOT/scripts/00-check-env.sh" ;;
+    1) bash "$REPO_ROOT/scripts/01-debian-base.sh" ;;
+    2) bash "$REPO_ROOT/scripts/02-check-root-26gb.sh" ;;
+    3) bash "$REPO_ROOT/scripts/03-install-proxmox-ve9.sh" install ;;
+    4) bash "$REPO_ROOT/scripts/04-proxmox-bridges-nat.sh" ;;
+    5)
+      echo "Available: cloudflared, tailscale, mihomo, 9router, headroom, hermes, hermes-webui, storage, copyparty, xui, ttyd, ohmyzsh, fastfetch, health"
+      read -r -p "Enter services (e.g. 9router,hermes): " svcs
+      IFS=',' read -ra ADDR <<< "$svcs"
+      for s in "${ADDR[@]}"; do
+        install_service "$(echo "$s" | xargs)"
+      done
+      ;;
+    6) bash "$REPO_ROOT/scripts/03-install-proxmox-ve9.sh" repair ;;
+    7) bash "$REPO_ROOT/scripts/upgrade-debian.sh" ;;
+    q) exit 0 ;;
+    *) echo "Invalid option" ;;
+  esac
+  read -r -p "Press enter to continue..."
+done

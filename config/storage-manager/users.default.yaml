@@ -1,0 +1,5 @@
+# Storage Manager Users Configuration
+# Managed by svc-storage.sh adduser subcommand
+# Do not edit manually — use: svc-storage.sh adduser <username> <path>
+
+users: []

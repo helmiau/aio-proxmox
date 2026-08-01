@@ -1,0 +1,23 @@
+# Mihomo (Clash.Meta) Configuration
+# Source: https://github.com/MetaCubeX/mihomo
+
+port: ${MIHOMO_PORT:-7890}
+socks-port: ${MIHOMO_PORT:-7890}
+mixed-port: ${MIHOMO_PORT:-7890}
+allow-lan: true
+mode: rule
+log-level: info
+external-controller: 0.0.0.0:${MIHOMO_UI_PORT:-9090}
+secret: ""
+
+dns:
+  enable: true
+  listen: 0.0.0.0:53
+  enhanced-mode: fake-ip
+  nameserver:
+    - 1.1.1.1
+    - 8.8.8.8
+
+proxies: []
+proxy-groups: []
+rules: []
