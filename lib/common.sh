@@ -31,7 +31,7 @@ PMXCFS_RETRY_DELAY=2
         systemctl reset-failed pve-cluster 2>/dev/null || true
         systemctl start pve-cluster || log_error "Failed to start pve-cluster"
         # Wait for pmxcfs to mount (required for pct commands)
-        local mounted=0
+        mounted=0
         for ((i=0; i<PMXCFS_RETRIES; i++)); do
             if [[ -d "/etc/pve/nodes" ]]; then
                 mounted=1
