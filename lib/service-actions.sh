@@ -179,6 +179,9 @@ get_service_status() {
 create_lxc_container() {
     local service_name="$1"
     local prefix="${service_name^^}"
+
+    # Ensure pmxcfs is mounted before pct commands
+    ensure_pmxcfs || return 1
     
     # Special case mapping for ENV prefixes
     [[ "$prefix" == "9ROUTER" ]] && prefix="ROUTER9"
