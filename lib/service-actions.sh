@@ -6,6 +6,11 @@
 # Source common library
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
+# Ensure Proxmox tools are in PATH if PVE is installed
+if command -v pveversion >/dev/null 2>&1; then
+    export PATH="/usr/sbin:/sbin:/usr/bin:/bin:/usr/local/sbin:/usr/local/bin" || true
+fi
+
 # Service action dispatcher
 dispatch_action() {
     local action="$1"
