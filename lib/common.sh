@@ -3,6 +3,19 @@
 # Common utilities for Debian → Proxmox VE Homelab Installer
 # Shared functions used across all scripts
 
+# Fallback log functions (overridden by logging.sh if sourced later)
+log_info() {
+    echo "[INFO] $1"
+}
+
+log_warn() {
+    echo "[WARN] $1"
+}
+
+log_error() {
+    echo "[ERROR] $1"
+}
+
 # Ensure Proxmox tools are in PATH if PVE is installed
 if command -v pveversion >/dev/null 2>&1; then
     export PATH="/usr/sbin:/sbin:/usr/bin:/bin:/usr/local/sbin:/usr/local/bin" || true
@@ -13,6 +26,53 @@ if command -v pveversion >/dev/null 2>&1; then
         systemctl start pve-cluster || log_error "Failed to start pve-cluster"
     fi
 fi
+
+# Load environment variables from ENVIRONMENT file
+load_env() {
+    local env_file="${1:-ENVIRONMENT}"
+    if [[ -f "$env_file" ]]; then
+        source "$env_file"
+    else
+        log_error "ENVIRONMENT file not found: $env_file"
+        return 1
+    fi
+}
+
+# Validate environment variables
+validate_env() {
+    local required_vars=("INSTALL_MODE" "PROXMOX_HOSTNAME" "PROXMOX_IP" "PROXMOX_GATEWAY" "PROXMOX_NETMASK" "PROXMOX_DNS1" "PROXMOX_DNS2")
+    for var in "${required_vars[@]}"; do
+        if [[ -z "${!var}" ]]; then
+            log_error "Required environment variable not set: $var"
+            return 1
+        fi
+    done
+}
+
+# Check if a service is installed
+is_service_installed() {
+    local service_name="$1"
+    local var_name="INSTALL_${service_name^^}"
+    local install_mode="${!var_name}"
+    [[ "$install_mode" == "installed" ]]
+}
+
+# Mark a service as installed
+mark_service_installed() {
+    local service_name="$1"
+    local var_name="INSTALL_${service_name^^}"
+    export "$var_name=installed"
+}
+
+# Check if a port is available
+is_port_available() {
+    local port="$1"
+    if ! ss -tuln | grep -q ":$port "; then
+        return 0
+    else
+        return 1
+    fi
+}
 
 # Exit on error, but allow specific commands to bypass
 exit_on_error() {
@@ -217,19 +277,6 @@ calc_ip() {
     local d=$(( result & 0xff ))
 
     echo "$a.$b.$c.$d"
-}
-
-# Log functions (will be overridden by logging.sh)
-log_info() {
-    echo "[INFO] $1"
-}
-
-log_warn() {
-    echo "[WARN] $1"
-}
-
-log_error() {
-    echo "[ERROR] $1"
 }
 
 # Main entry point for testing

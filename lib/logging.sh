@@ -3,9 +3,6 @@
 # Centralized logging for Debian → Proxmox VE Homelab Installer
 # Writes to systemd-journald (tag: homelab) and local file aggregate
 
-# Source common library
-source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
-
 # Log directory
 LOG_DIR="${LOG_DIR:-/var/log/homelab}"
 mkdir -p "$LOG_DIR"
