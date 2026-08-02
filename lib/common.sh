@@ -3,6 +3,11 @@
 # Common utilities for Debian → Proxmox VE Homelab Installer
 # Shared functions used across all scripts
 
+# Ensure Proxmox tools are in PATH if PVE is installed
+if command -v pveversion >/dev/null 2>&1; then
+    export PATH="/usr/sbin:/sbin:/usr/bin:/bin:/usr/local/sbin:/usr/local/bin" || true
+fi
+
 # Exit on error, but allow specific commands to bypass
 exit_on_error() {
     local cmd="$1"

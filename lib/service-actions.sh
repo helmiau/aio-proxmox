@@ -11,6 +11,9 @@ if command -v pveversion >/dev/null 2>&1; then
     export PATH="/usr/sbin:/sbin:/usr/bin:/bin:/usr/local/sbin:/usr/local/bin" || true
 fi
 
+# Ensure Proxmox tools are in PATH if PVE is installed
+# (handled globally in lib/common.sh)
+
 # Service action dispatcher
 dispatch_action() {
     local action="$1"
