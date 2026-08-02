@@ -1,5 +1,5 @@
-#!/bin/bash
-# ENVIRONMENT.example — aio-proxmox v4.0
+﻿#!/bin/bash
+# ENVIRONMENT.example â€” aio-proxmox v4.0
 # Copy this file to ENVIRONMENT and edit values for your setup
 # ============================================================
 
@@ -18,7 +18,7 @@ TTYD_INSTALL_MODE='host'
 OHMYZSH_INSTALL_MODE='host'
 FASTFETCH_INSTALL_MODE='host'
 HEALTHCHECK_INSTALL_MODE='host'
-MIKROTIK_CHR_INSTALL_MODE='vm'  # VM, not LXC — doesn't follow P2
+MIKROTIK_CHR_INSTALL_MODE='vm'  # VM, not LXC â€” doesn't follow P2
 ROUTER9_INSTALL_MODE='ask'
 HEADROOM_INSTALL_MODE='ask'       # default: co-locate with 9Router if lxc-new
 HERMES_INSTALL_MODE='ask'
@@ -39,13 +39,10 @@ XUI_TARGET_CTID=''
 INSTALL_CLOUDFLARED='ask'
 INSTALL_TAILSCALE='ask'
 INSTALL_MIHOMO='ask'
-INSTALL_MIKROTIK_CHR='ask'
 INSTALL_9ROUTER='ask'
 INSTALL_HEADROOM='ask'
-INSTALL_HERMES='ask'
 INSTALL_HERMES_WEBUI='ask'
 INSTALL_STORAGE_MANAGER='ask'
-INSTALL_COPYPARTY='ask'
 INSTALL_XUI='ask'
 INSTALL_TTYD='ask'
 INSTALL_OHMYZSH='ask'
@@ -65,23 +62,17 @@ UPDATE_XUI='ask'
 
 # --- CREDENTIALS (ganti setelah install!) ---
 DEFAULT_ROOT_PASSWORD='changeme123'
-DEFAULT_SUDO_PASSWORD='changeme123'
 LXC_ROOT_PASSWORD='changeme123'
 HERMES_USER_PASSWORD='changeme123'
-ROUTER9_INITIAL_PASSWORD='changeme123'
 HERMES_WEBUI_ADMIN_PASSWORD='changeme123'
 STORAGE_MANAGER_DEFAULT_PASSWORD='changeme123'
 COPYPARTY_PASSWORD='changeme123'
-# 3x-ui kredensial acak → /etc/x-ui/install-result.env
+# 3x-ui kredensial acak â†’ /etc/x-ui/install-result.env
 
 # --- HOST ---
 PVE_HOSTNAME='proxmox'
 PVE_DOMAIN='local'
 PVE_FQDN='proxmox.local'
-LXC_CMD_TIMEOUT_SECONDS='1800'
-LXC_TEMPLATE_STORAGE='local'
-DEBIAN13_LXC_TEMPLATE=''
-DEBIAN13_LXC_TEMPLATE_GLOB='debian-13-standard*.tar.zst'
 
 # --- ALPINE LXC TEMPLATE (lightweight base image) ---
 ALPINE_LXC_TEMPLATE=''
@@ -104,14 +95,11 @@ DOCKER_DATA_DIR='/var/lib/docker'
 DOCKER_REGISTRY_MIRROR=''
 
 # --- BOOT ---
-EXPECTED_BOOT_MODE='auto'   # legacy|uefi|auto
 EXPECTED_ROOT_MAX_GIB='28'
 EXPECTED_ROOT_TARGET_GIB='26'
-EXPECTED_SWAP_GIB='1'
 
 # --- NETWORK ---
 PVE_WAN_NIC='auto'
-PVE_MGMT_MODE='static'
 PVE_MGMT_IP='192.168.1.10'
 PVE_MGMT_CIDR='24'
 PVE_MGMT_GATEWAY='192.168.1.1'
@@ -127,9 +115,7 @@ VM_BR_SERVICE_IP='10.10.40.1'
 VM_BR_SERVICE_CIDR='24'
 VM_BR_TEST_IP='10.10.50.1'
 VM_BR_TEST_CIDR='24'
-ENABLE_NAT_30='yes'
 ENABLE_NAT_40='yes'
-ENABLE_NAT_50='yes'
 
 # --- DOMAIN ---
 DOMAIN_ROOT='example.com'
@@ -139,7 +125,6 @@ DOMAIN_MIHOMO="mihomo.${DOMAIN_ROOT}"
 DOMAIN_AI="ai.${DOMAIN_ROOT}"
 DOMAIN_HERMES="hermes.${DOMAIN_ROOT}"
 DOMAIN_CHAT="chat.${DOMAIN_ROOT}"
-DOMAIN_WINBOX="winbox.${DOMAIN_ROOT}"
 DOMAIN_VPN="vpn.${DOMAIN_ROOT}"
 
 CLOUDFLARED_TOKEN=''
@@ -166,18 +151,13 @@ MIHOMO_UI_URL='https://github.com/MetaCubeX/metacubexd/archive/refs/heads/gh-pag
 ROUTER9_CTID='101'
 ROUTER9_HOSTNAME='9router'
 ROUTER9_IP='10.10.40.10'
-ROUTER9_CIDR='24'
 ROUTER9_GATEWAY='10.10.40.1'
-ROUTER9_CORES='2'
 ROUTER9_STORAGE='local'
-ROUTER9_RAM_MB='1024'
 ROUTER9_SWAP_MB='1024'
-ROUTER9_DISK_GB='8'
 ROUTER9_NPM_PACKAGE='9router'
 ROUTER9_PORT='20128'
 ROUTER9_UNPRIVILEGED='1'
 ROUTER9_FEATURES='nesting=1'
-ROUTER9_ONBOOT='1'
 ROUTER9_DATA_DIR='/var/lib/9router'
 ROUTER9_BASE_URL="https://${DOMAIN_AI}"
 ROUTER9_CLOUDFLARE_TUNNEL='no'
@@ -196,11 +176,8 @@ HEADROOM_AUTH=''
 HERMES_CTID='102'
 HERMES_HOSTNAME='hermes-agent'
 HERMES_IP='10.10.40.20'
-HERMES_CIDR='24'
 HERMES_GATEWAY='10.10.40.1'
-HERMES_RAM_MB='2048'
 HERMES_SWAP_MB='2048'
-HERMES_DISK_GB='15'
 HERMES_USER='hermes'
 HERMES_PORT='8000'
 HERMES_MCP_PORT='8001'
@@ -231,7 +208,6 @@ HERMES_CONFIG_PATH='/var/lib/hermes-webui/.hermes/config.yaml'
 # --- TTYD ---
 # (DEFAULT)
 TTYD_VERSION='latest'
-TTYD_BIND='127.0.0.1'
 TTYD_PORT='7681'
 TTYD_USERNAME='admin'
 TTYD_PASSWORD='changeme123'
@@ -313,7 +289,6 @@ MIKROTIK_RAM_MB='512'
 MIKROTIK_DISK_GB='1'
 MIKROTIK_CHR_URL='https://github.com/elseif/MikroTikPatch/releases/download/7.23.1/chr-7.23.1-legacy-bios.qcow2.zip'
 MIKROTIK_WAN_IP='10.10.30.2'
-MIKROTIK_WAN_CIDR='24'
 MIKROTIK_WAN_GATEWAY='10.10.30.1'
 MIKROTIK_WINBOX_PORT='8291'
 
