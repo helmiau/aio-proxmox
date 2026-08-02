@@ -22,8 +22,8 @@ if command -v pveversion >/dev/null 2>&1; then
     
     # PVE Cluster check (pmxcfs)
     if [[ ! -d "/etc/pve/nodes" ]]; then
-        log_warn "PVE Cluster filesystem (/etc/pve) not mounted. Attempting to start pve-cluster..."
-        systemctl start pve-cluster || log_error "Failed to start pve-cluster"
+        log_warn "PVE Cluster filesystem (/etc/pve) not mounted. Attempting to restart pve-cluster..."
+        systemctl restart pve-cluster || log_error "Failed to restart pve-cluster"
         # Wait for pmxcfs to mount (required for pct commands)
         local retries=5
         local retry_delay=2
@@ -36,7 +36,7 @@ if command -v pveversion >/dev/null 2>&1; then
             sleep $retry_delay
         done
         if (( !mounted )); then
-            log_error "pmxcfs did not mount after starting pve-cluster"
+            log_error "pmxcfs did not mount after restarting pve-cluster"
         fi
     fi
 fi
