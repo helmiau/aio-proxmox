@@ -43,8 +43,31 @@ while true; do
       echo "Available: cloudflared, tailscale, mihomo, 9router, headroom, hermes, hermes-webui, storage, copyparty, xui, ttyd, ohmyzsh, fastfetch, health"
       read -r -p "Enter services (e.g. 9router,hermes): " svcs
       IFS=',' read -ra ADDR <<< "$svcs"
+      
+      echo "Select action for ${svcs}:"
+      echo "1) Install"
+      echo "2) Update"
+      echo "3) Uninstall"
+      echo "4) Reinstall"
+      read -r -p "Action [1-4]: " action_opt
+      
+      action=""
+      case "$action_opt" in
+        1) action="install" ;;
+        2) action="update" ;;
+        3) action="uninstall" ;;
+        4) action="reinstall" ;;
+        *) log_error "Invalid action"; continue ;;
+      esac
+      
       for s in "${ADDR[@]}"; do
-        install_service "$(echo "$s" | xargs)"
+        svc="$(echo "$s" | xargs)"
+        case "$action" in
+          install) install_service "$svc" ;;
+          update) update_service "$svc" ;;
+          uninstall) uninstall_service "$svc" ;;
+          reinstall) reinstall_service "$svc" ;;
+        esac
       done
       ;;
     6) bash "$REPO_ROOT/scripts/03-install-proxmox-ve9.sh" repair ;;
