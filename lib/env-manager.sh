@@ -214,7 +214,26 @@ prompt_service_env() {
     log_success "${service} ENV updated (EDITED)"
 }
 
-# --- Core: Load ENV -------------------------------------------
+# --- Core: Interactive ENV Editor -----------------------------
+edit_env() {
+    local editor="${EDITOR:-nano}"
+    if ! command -v "$editor" >/dev/null 2>&1; then
+        editor="nano"
+    fi
+    
+    if [[ ! -f "${ENV_FILE}" ]]; then
+        log_error "ENVIRONMENT file not found. Run init_env first."
+        return 1
+    fi
+    
+    backup_env
+    update_env_header "EDITED"
+    
+    log_info "Opening ENVIRONMENT in $editor..."
+    "$editor" "${ENV_FILE}"
+    
+    log_success "ENVIRONMENT saved. Remember to reload with: source ENVIRONMENT"
+}
 load_env() {
     if [[ -f "${ENV_FILE}" ]]; then
         # shellcheck disable=SC1090

@@ -155,6 +155,7 @@ show_menu() {
   echo "8)  Update Services"
   echo "9)  Update Repo (git pull)"
   echo "10) Manage LXC (pct)"
+  echo "11) Edit ENVIRONMENT (nano)"
   echo "q)  Quit"
   echo "----------------------------------------------------"
 }
@@ -174,6 +175,7 @@ while true; do
     8) bash "$REPO_ROOT/updater" ;;
     9) git -C "$REPO_ROOT" pull ;;
     10) manage_lxc ;;
+    11) edit_env ;;
     q) exit 0 ;;
     *) echo "Invalid option" ;;
   esac
