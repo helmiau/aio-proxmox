@@ -6,6 +6,12 @@
 # Ensure Proxmox tools are in PATH if PVE is installed
 if command -v pveversion >/dev/null 2>&1; then
     export PATH="/usr/sbin:/sbin:/usr/bin:/bin:/usr/local/sbin:/usr/local/bin" || true
+    
+    # PVE Cluster check (pmxcfs)
+    if [[ ! -d "/etc/pve/nodes" ]]; then
+        log_warn "PVE Cluster filesystem (/etc/pve) not mounted. Attempting to start pve-cluster..."
+        systemctl start pve-cluster || log_error "Failed to start pve-cluster"
+    fi
 fi
 
 # Exit on error, but allow specific commands to bypass

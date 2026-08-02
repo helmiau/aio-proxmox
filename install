@@ -1,5 +1,5 @@
 #!/bin/bash
-# install — main interactive installer for aio-proxmox v4.0
+# install — main interactive installer for aio-proxmox v4.1
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$REPO_ROOT/lib/logging.sh"
@@ -11,6 +11,134 @@ source "$REPO_ROOT/lib/env-manager.sh"
 init_env
 load_env
 
+# Service index mapping
+SERVICES=(cloudflared tailscale mihomo 9router headroom hermes hermes-webui storage copyparty xui ttyd ohmyzsh fastfetch health)
+
+service_name_by_index() {
+    local idx="$1"
+    if [[ "$idx" =~ ^[0-9]+$ ]] && (( idx >= 1 && idx <= ${#SERVICES[@]} )); then
+        echo "${SERVICES[$((idx-1))]}"
+        return 0
+    fi
+    return 1
+}
+
+# Parse selection like "1-1,2" or "1-1" or "1" → action + list of services
+parse_selection() {
+    local input="$1"
+    local action="" services=()
+    
+    if [[ "$input" =~ ^([1-4])-(.+)$ ]]; then
+        action="${BASH_REMATCH[1]}"
+        local list="${BASH_REMATCH[2]}"
+        IFS=',' read -ra parts <<< "$list"
+        for p in "${parts[@]}"; do
+            local svc=""
+            if svc=$(service_name_by_index "$p"); then
+                services+=("$svc")
+            else
+                services+=("$p")
+            fi
+        done
+    else
+        # Single service name (no action prefix) → default install
+        action="1"
+        if svc=$(service_name_by_index "$input"); then
+            services+=("$svc")
+        else
+            services+=("$input")
+        fi
+    fi
+    
+    echo "$action"
+    printf '%s\n' "${services[@]}"
+}
+
+# Management action name
+action_name() {
+    case "$1" in
+        1) echo "install" ;;
+        2) echo "update" ;;
+        3) echo "uninstall" ;;
+        4) echo "reinstall" ;;
+    esac
+}
+
+manage_services() {
+    echo ""
+    echo "--- Available Services ---"
+    local i=1
+    for s in "${SERVICES[@]}"; do
+        printf "%2d) %s\n" "$i" "$s"
+        ((i++))
+    done
+    echo ""
+    echo "Input format: <action>-<service1>,<service2>"
+    echo "  action: 1=install, 2=update, 3=uninstall, 4=reinstall"
+    echo "  service: number or name (e.g. 1-1,2 = install cloudflared + tailscale)"
+    echo "  single: '1' = install service #1, or type service name directly"
+    echo ""
+    read -r -p "Your input (e.g. 1-1,2): " sel
+    
+    local action services=()
+    local parsed
+    parsed=$(parse_selection "$sel")
+    action=$(echo "$parsed" | head -1)
+    services=($(echo "$parsed" | tail -n +2))
+    
+    local action_str
+    action_str=$(action_name "$action")
+    
+    for svc in "${services[@]}"; do
+        log_info "→ ${action_str}: ${svc}"
+        case "$action_str" in
+            install) install_service "$svc" ;;
+            update) update_service "$svc" ;;
+            uninstall) uninstall_service "$svc" ;;
+            reinstall) reinstall_service "$svc" ;;
+        esac
+    done
+}
+
+manage_lxc() {
+    echo ""
+    echo "--- LXC Container Management (pct) ---"
+    echo "1) List containers"
+    echo "2) Start container"
+    echo "3) Stop container"
+    echo "4) Restart container"
+    echo "5) Enter shell (pct enter)"
+    echo "6) Create container"
+    echo "7) Destroy container"
+    echo "q) Back to main menu"
+    echo ""
+    read -r -p "LXC action: " lxc_opt
+    
+    case "$lxc_opt" in
+        1) pct list ;;
+        2) read -r -p "CTID: " ctid; pct start "$ctid" ;;
+        3) read -r -p "CTID: " ctid; pct stop "$ctid" ;;
+        4) read -r -p "CTID: " ctid; pct reboot "$ctid" ;;
+        5) read -r -p "CTID: " ctid; pct enter "$ctid" ;;
+        6)
+            read -r -p "CTID: " ctid
+            read -r -p "Hostname: " host
+            read -r -p "Template (e.g. debian-13-standard): " tmpl
+            read -r -p "Storage (e.g. local-lvm): " storage
+            pct create "$ctid" "local:vztmpl/${tmpl}.tar.zst" \
+                --hostname "$host" --storage "$storage" \
+                --net0 "name=eth0,bridge=vmbr0,ip=dhcp" --unprivileged 1
+            ;;
+        7)
+            read -r -p "CTID: " ctid
+            read -r -p "Destroy container $ctid? (y/N): " confirm
+            [[ "$confirm" == "y" ]] && pct destroy "$ctid"
+            ;;
+        q) return 0 ;;
+        *) echo "Invalid option" ;;
+    esac
+}
+
 show_menu() {
   clear
   echo "===================================================="
@@ -21,11 +149,12 @@ show_menu() {
   echo "2)  Check Root Size (26 GiB)"
   echo "3)  Install Proxmox VE 9"
   echo "4)  Configure Bridges & NAT"
-  echo "5)  Install Services (Comma-separated)"
+  echo "5)  Manage Services (Install/Update/Uninstall/Reinstall)"
   echo "6)  Repair/Reinstall Proxmox"
   echo "7)  Upgrade Debian (Standalone)"
   echo "8)  Update Services"
   echo "9)  Update Repo (git pull)"
+  echo "10) Manage LXC (pct)"
   echo "q)  Quit"
   echo "----------------------------------------------------"
 }
@@ -39,41 +168,12 @@ while true; do
     2) bash "$REPO_ROOT/scripts/02-check-root-26gb.sh" ;;
     3) bash "$REPO_ROOT/scripts/03-install-proxmox-ve9.sh" install ;;
     4) bash "$REPO_ROOT/scripts/04-proxmox-bridges-nat.sh" ;;
-    5)
-      echo "Available: cloudflared, tailscale, mihomo, 9router, headroom, hermes, hermes-webui, storage, copyparty, xui, ttyd, ohmyzsh, fastfetch, health"
-      read -r -p "Enter services (e.g. 9router,hermes): " svcs
-      IFS=',' read -ra ADDR <<< "$svcs"
-      
-      echo "Select action for ${svcs}:"
-      echo "1) Install"
-      echo "2) Update"
-      echo "3) Uninstall"
-      echo "4) Reinstall"
-      read -r -p "Action [1-4]: " action_opt
-      
-      action=""
-      case "$action_opt" in
-        1) action="install" ;;
-        2) action="update" ;;
-        3) action="uninstall" ;;
-        4) action="reinstall" ;;
-        *) log_error "Invalid action"; continue ;;
-      esac
-      
-      for s in "${ADDR[@]}"; do
-        svc="$(echo "$s" | xargs)"
-        case "$action" in
-          install) install_service "$svc" ;;
-          update) update_service "$svc" ;;
-          uninstall) uninstall_service "$svc" ;;
-          reinstall) reinstall_service "$svc" ;;
-        esac
-      done
-      ;;
+    5) manage_services ;;
     6) bash "$REPO_ROOT/scripts/03-install-proxmox-ve9.sh" repair ;;
     7) bash "$REPO_ROOT/scripts/upgrade-debian.sh" ;;
     8) bash "$REPO_ROOT/updater" ;;
     9) git -C "$REPO_ROOT" pull ;;
+    10) manage_lxc ;;
     q) exit 0 ;;
     *) echo "Invalid option" ;;
   esac
