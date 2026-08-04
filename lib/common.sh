@@ -16,10 +16,9 @@ log_error() {
     echo "[ERROR] $1"
 }
 
-# Ensure Proxmox tools are in PATH if PVE is installed
-if command -v pveversion >/dev/null 2>&1; then
-    export PATH="/usr/sbin:/sbin:/usr/bin:/bin:/usr/local/sbin:/usr/local/bin" || true
-fi
+# Ensure Proxmox tools are in PATH (unconditional — SSH login PATH may lack /usr/sbin)
+# pct, qm, pveversion live in /usr/sbin:/sbin; must be prepended before any command -v check
+export PATH="/usr/sbin:/sbin:/usr/bin:/bin:/usr/local/sbin:/usr/local/bin" || true
 
 # Ensure pmxcfs is mounted (call before pct commands)
 ensure_pmxcfs() {
