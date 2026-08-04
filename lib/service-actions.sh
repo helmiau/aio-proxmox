@@ -221,18 +221,46 @@ create_lxc_container() {
         return 0
     fi
 
-    log_info "Creating LXC container $hostname (CTID will be assigned)"
+    # Resolve base OS: alpine (lightweight) or debian (default)
+    # Per-service override: <PREFIX>_LXC_TEMPLATE=alpine|debian, else global LXC_TEMPLATE
+    local var_template="${prefix}_LXC_TEMPLATE"
+    local base_os="${!var_template:-${LXC_TEMPLATE:-debian}}"
+    local ostype="debian"
+    local template_glob="${DEBIAN13_LXC_TEMPLATE_GLOB:-debian-13-standard*.tar.zst}"
+    if [[ "$base_os" == "alpine" ]]; then
+        ostype="alpine"
+        template_glob="${ALPINE_LXC_TEMPLATE_GLOB:-alpine-3*-standard*.tar.zst}"
+    fi
+
+    # Resolve actual template filename; download if missing
+    local tmpl_file storage="${LXC_TEMPLATE_STORAGE:-local}"
+    tmpl_file=$(pveam list "$storage" 2>/dev/null | grep -E "$template_glob" | awk '{print $1}' | head -n1)
+    if [[ -z "$tmpl_file" ]]; then
+        log_warn "Template matching '$template_glob' not found on $storage — downloading..."
+        if [[ "$ostype" == "alpine" ]] && [[ "${ALPINE_LXC_AUTO_DOWNLOAD:-yes}" == "yes" ]]; then
+            pveam update
+            tmpl_file=$(pveam available --section system | grep -E "$template_glob" | awk '{print $2}' | head -n1)
+            [[ -z "$tmpl_file" ]] && { log_error "Alpine template not available"; return 1; }
+            pveam download "$storage" "$tmpl_file"
+        else
+            log_error "Template not found and auto-download disabled. Run: pveam update && pveam download $storage <template>"
+            return 1
+        fi
+    fi
+
+    log_info "Creating LXC container $hostname (template: $tmpl_file)"
 
     # Create container
     local var_password="LXC_${prefix}_PASSWORD"
     local password="${!var_password:-${DEFAULT_LXC_ROOT_PASSWORD:-}}"
     
-    pct create "$hostname" debian:trixie \
+    pct create "$hostname" "local:vztmpl/$tmpl_file" \
         --hostname "$hostname" \
         --memory "$ram_mb" "$swap_mb" \
         --disk "$disk_gb" \
         --cores "$cores" \
         --net0 "name=eth0,bridge=$bridge,ip=$ip/$cidr,gw=$gateway" \
+        --ostype "$ostype" \
         --nameserver "8.8.8.8" \
         --timezone "Europe/Berlin" \
         --password "$password" \

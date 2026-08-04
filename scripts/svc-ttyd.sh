@@ -39,8 +39,8 @@ ensure_user() {
 
 install_ttyd() {
     log_service "Installing ttyd"
-    apt-get update -y
-    apt-get install -y ttyd
+    pkg_update
+    pkg_install ttyd
 }
 
 create_systemd_service() {
@@ -87,7 +87,8 @@ action_install() {
     create_systemd_service
 
     log_service "Starting service"
-    systemctl enable --now ttyd
+    svc_enable ttyd
+    svc_start ttyd
 
     register_registry
     mark_service_installed "$SERVICE_NAME"
@@ -97,11 +98,17 @@ action_install() {
 action_uninstall() {
     log_service "Uninstalling"
     
-    systemctl disable --now ttyd 2>/dev/null || true
-    rm -f /etc/systemd/system/ttyd.service
-    systemctl daemon-reload
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl disable --now ttyd 2>/dev/null || true
+        rm -f /etc/systemd/system/ttyd.service
+        systemctl daemon-reload
+    elif command -v rc-service >/dev/null 2>&1; then
+        rc-service ttyd stop 2>/dev/null || true
+        rc-update del ttyd default 2>/dev/null || true
+        rm -f /etc/init.d/ttyd
+    fi
 
-    apt-get remove -y ttyd 2>/dev/null || true
+    pkg_remove ttyd 2>/dev/null || true
 
     unregister_registry
     
@@ -122,8 +129,8 @@ action_update() {
         return
     fi
 
-    apt-get update -y && apt-get install -y --only-upgrade ttyd
-    systemctl restart ttyd
+    pkg_upgrade ttyd
+    svc_start ttyd
     log_service "Update completed"
 }
 

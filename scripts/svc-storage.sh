@@ -27,8 +27,8 @@ log_service() {
 
 ensure_deps() {
     log_service "Installing dependencies (vsftpd, samba, openssh-server, curl, jq, yq)"
-    apt-get update -y
-    apt-get install -y vsftpd samba openssh-server curl jq yq
+    pkg_update
+    pkg_install vsftpd samba openssh-server curl jq yq
 }
 
 setup_fbq() {

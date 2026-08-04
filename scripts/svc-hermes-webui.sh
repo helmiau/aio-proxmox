@@ -41,7 +41,7 @@ ensure_node() {
     if ! command -v node >/dev/null 2>&1; then
         log_service "Installing Node.js 20"
         curl -fsSL "https://deb.nodesource.com/setup_20.x" | bash -
-        apt-get install -y nodejs
+        pkg_install nodejs
     fi
     log_service "Node.js $(node --version) ready"
 }

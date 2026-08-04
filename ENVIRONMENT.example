@@ -80,6 +80,11 @@ ALPINE_LXC_TEMPLATE_GLOB='alpine-3*-standard*.tar.zst'
 ALPINE_LXC_VERSION='3.21'
 ALPINE_LXC_AUTO_DOWNLOAD='yes'
 
+# --- LXC BASE OS (global default) ---
+# debian = full Debian 13 (default), alpine = lightweight Alpine 3.21
+# Per-service override: <PREFIX>_LXC_TEMPLATE=alpine|debian (e.g. ROUTER9_LXC_TEMPLATE)
+LXC_TEMPLATE='debian'
+
 # --- DOCKER SERVICES (run inside LXC) ---
 DOCKER_LXC_TEMPLATE='debian-13-standard'
 DOCKER_LXC_CTID='200'

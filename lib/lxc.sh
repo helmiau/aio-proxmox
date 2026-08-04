@@ -18,13 +18,39 @@ create_lxc_container() {
     local disk_gb="${8:-$LXC_DEFAULT_DISK_GB}"
     local cores="${9:-$LXC_DEFAULT_CORES}"
     local bridge="${10:-$LXC_DEFAULT_BRIDGE}"
+    local template="${11:-$LXC_TEMPLATE}"
 
     # Find next available CTID
     local ctid=$(find_next_ctid)
 
+    # Resolve template: Alpine (lightweight) vs Debian default
+    # Alpine: ostype=alpine, uses *-standard*.tar.zst
+    local ostype="debian"
+    local template_glob="${DEBIAN13_LXC_TEMPLATE_GLOB:-debian-13-standard*.tar.zst}"
+    if [[ "$template" == "alpine" || "$template" == "alpine-3"* ]]; then
+        ostype="alpine"
+        template_glob="${ALPINE_LXC_TEMPLATE_GLOB:-alpine-3*-standard*.tar.zst}"
+    fi
+
+    # Resolve actual template filename (download if missing)
+    local tmpl_file
+    tmpl_file=$(pveam list "$LXC_TEMPLATE_STORAGE" 2>/dev/null | grep -E "$template_glob" | awk '{print $1}' | head -n1)
+    if [[ -z "$tmpl_file" ]]; then
+        log_warn "Template matching '$template_glob' not found on $LXC_TEMPLATE_STORAGE — attempting download..."
+        if [[ "$ostype" == "alpine" ]] && [[ "${ALPINE_LXC_AUTO_DOWNLOAD:-yes}" == "yes" ]]; then
+            pveam update
+            tmpl_file=$(pveam available --section system | grep -E "$template_glob" | awk '{print $2}' | head -n1)
+            [[ -z "$tmpl_file" ]] && { log_error "Alpine template not available"; return 1; }
+            pveam download "$LXC_TEMPLATE_STORAGE" "$tmpl_file"
+        else
+            log_error "Template not found and auto-download disabled. Run: pveam update && pveam download $LXC_TEMPLATE_STORAGE <template>"
+            return 1
+        fi
+    fi
+
     # Create container
-    log_info "Creating LXC container $hostname (CTID: $ctid)"
-    pct create "$ctid" "local:vztmpl/debian-13-standard_13.6-1_amd64.tar.zst" \
+    log_info "Creating LXC container $hostname (CTID: $ctid, template: $tmpl_file)"
+    pct create "$ctid" "local:vztmpl/$tmpl_file" \
         --hostname "$hostname" \
         --memory "$ram_mb" \
         --swap "$swap_mb" \
@@ -34,7 +60,7 @@ create_lxc_container() {
         --timezone "Europe/Berlin" \
         --password "${LXC_ROOT_PASSWORD:-changeme}" \
         --ssh-keys "${SSH_PUBLIC_KEY:-}" \
-        --ostype debian \
+        --ostype "$ostype" \
         --unprivileged 1 \
         --features "nesting=1"
 

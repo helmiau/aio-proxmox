@@ -38,8 +38,12 @@ log_service() {
 ensure_node() {
     if ! command -v node >/dev/null 2>&1; then
         log_service "Installing Node.js $NODE_MAJOR"
-        curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash -
-        apt-get install -y nodejs
+        if command -v apk >/dev/null 2>&1; then
+            pkg_install nodejs npm
+        else
+            curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash -
+            pkg_install nodejs
+        fi
     fi
     log_service "Node.js $(node --version) ready"
 }

@@ -298,6 +298,66 @@ calc_ip() {
     echo "$a.$b.$c.$d"
 }
 
+# --- Package manager abstraction (Debian/apt vs Alpine/apk) ---
+detect_pkg_manager() {
+    if command -v apk >/dev/null 2>&1; then
+        echo "apk"
+    elif command -v apt-get >/dev/null 2>&1; then
+        echo "apt"
+    else
+        echo "unknown"
+    fi
+}
+
+pkg_update() {
+    case "$(detect_pkg_manager)" in
+        apk) apk update ;;
+        apt) apt-get update -y ;;
+        *) log_error "No supported package manager found"; return 1 ;;
+    esac
+}
+
+pkg_install() {
+    case "$(detect_pkg_manager)" in
+        apk) apk add --no-cache "$@" ;;
+        apt) apt-get install -y "$@" ;;
+        *) log_error "No supported package manager found"; return 1 ;;
+    esac
+}
+
+pkg_remove() {
+    case "$(detect_pkg_manager)" in
+        apk) apk del "$@" ;;
+        apt) apt-get remove -y "$@" 2>/dev/null || true ;;
+        *) log_error "No supported package manager found"; return 1 ;;
+    esac
+}
+
+pkg_upgrade() {
+    case "$(detect_pkg_manager)" in
+        apk) apk upgrade ;;
+        apt) apt-get update -y && apt-get install -y --only-upgrade "$@" ;;
+        *) log_error "No supported package manager found"; return 1 ;;
+    esac
+}
+
+# systemd vs openrc abstraction (Alpine uses openrc, no systemctl)
+svc_enable() {
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl enable "$1"
+    elif command -v rc-update >/dev/null 2>&1; then
+        rc-update add "$1" default
+    fi
+}
+
+svc_start() {
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl start "$1"
+    elif command -v rc-service >/dev/null 2>&1; then
+        rc-service "$1" start
+    fi
+}
+
 # Main entry point for testing
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
     echo "Common library loaded. Use: source lib/common.sh"

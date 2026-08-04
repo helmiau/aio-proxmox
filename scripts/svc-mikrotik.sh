@@ -37,8 +37,8 @@ log_service() {
 ensure_kvm() {
     if ! command -v virt-install >/dev/null 2>&1; then
         log_service "Installing KVM tools"
-        apt-get update -y
-        apt-get install -y qemu-kvm libvirt-daemon-system virtinst virt-viewer
+        pkg_update
+        pkg_install qemu-kvm libvirt-daemon-system virtinst virt-viewer
     fi
 }
 

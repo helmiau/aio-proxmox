@@ -22,8 +22,8 @@ log_service() {
 install_ohmyzsh() {
     log_service "Installing Oh My Zsh"
     if ! command -v zsh >/dev/null 2>&1; then
-        apt-get update -y
-        apt-get install -y zsh git
+        pkg_update
+        pkg_install zsh git
     fi
 
     # Install Oh My Zsh

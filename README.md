@@ -1,4 +1,4 @@
-﻿# aio-proxmox — Debian → Proxmox VE Homelab Installer v4.1
+﻿# aio-proxmox — Debian → Proxmox VE Homelab Installer v4.2
 
 ## Overview
 
@@ -9,6 +9,7 @@ Automated installer for a **personal homelab** on **Intel J1900 Mini PC (8GB RAM
 - **Port/IP Registry** to prevent conflicts
 - **Debian 13.5.0 → 13.6.0 upgrade** integrated
 - **Proxmox repair/reinstall** capability
+- **Full Alpine Linux support (P12)**: service LXC bisa jalan di Alpine (barebone, lightweight) atau Debian — `LXC_TEMPLATE` global atau `<PREFIX>_LXC_TEMPLATE` per service
 
 ## Quick Start
 
@@ -61,7 +62,7 @@ bash install
 
 ## Documentation
 
-- **PRD v4.1**: [PRD.md](PRD.md) — full architecture, principles, requirements
+- **PRD v4.2**: [PRD.md](PRD.md) — full architecture, principles, requirements
 - **ENVIRONMENT**: [ENVIRONMENT.example](ENVIRONMENT.example) — all variables
 - **Scripts**: `scripts/` — numbered steps + service scripts
 - **Libs**: `lib/` — shared helpers (common, service-actions, lxc, logging, env-manager)

@@ -41,8 +41,12 @@ ensure_user() {
 install_node() {
     if ! command -v node >/dev/null 2>&1; then
         log_service "Installing Node.js"
-        curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
-        apt-get install -y nodejs
+        if command -v apk >/dev/null 2>&1; then
+            pkg_install nodejs npm
+        else
+            curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+            pkg_install nodejs
+        fi
     fi
 }
 

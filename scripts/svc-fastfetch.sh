@@ -21,8 +21,8 @@ log_service() {
 
 install_fastfetch() {
     log_service "Installing fastfetch"
-    apt-get update -y
-    apt-get install -y fastfetch
+    pkg_update
+    pkg_install fastfetch
 }
 
 action_install() {
@@ -41,7 +41,7 @@ action_install() {
 
 action_uninstall() {
     log_service "Uninstalling"
-    apt-get remove -y fastfetch
+    pkg_remove fastfetch
     
     local status_file="/var/lib/homelab/service_status.json"
     if [[ -f "$status_file" ]]; then
@@ -53,7 +53,7 @@ action_uninstall() {
 
 action_update() {
     log_service "Updating"
-    apt-get update -y && apt-get install -y --only-upgrade fastfetch
+    pkg_upgrade fastfetch
     log_service "Update completed"
 }
 

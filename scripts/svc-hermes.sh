@@ -48,7 +48,7 @@ ensure_user() {
 ensure_python() {
     if ! command -v python3 >/dev/null 2>&1; then
         log_service "Installing python3"
-        apt-get update -y && apt-get install -y python3 python3-pip python3-venv
+        pkg_update && pkg_install python3 python3-pip python3-venv
     fi
 }
 
