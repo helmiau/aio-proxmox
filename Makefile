@@ -1,8 +1,12 @@
-# Makefile — aio-proxmox v4.0
+# Makefile — aio-proxmox v4.2
 
 .PHONY: all lint test clean
 
 all: lint test
+
+# P13: show version
+version:
+	@bash -c 'source lib/common.sh && echo "aio-proxmox $$(get_script_version)"'
 
 lint:
 	shellcheck -x scripts/*.sh lib/*.sh

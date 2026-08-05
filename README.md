@@ -10,6 +10,7 @@ Automated installer for a **personal homelab** on **Intel J1900 Mini PC (8GB RAM
 - **Debian 13.5.0 → 13.6.0 upgrade** integrated
 - **Proxmox repair/reinstall** capability
 - **Full Alpine Linux support (P12)**: service LXC bisa jalan di Alpine (barebone, lightweight) atau Debian — `LXC_TEMPLATE` global atau `<PREFIX>_LXC_TEMPLATE` per service
+- **Script versioning (P13)**: single-source `VERSION` file, `--version` flag di install & updater
 
 ## Quick Start
 

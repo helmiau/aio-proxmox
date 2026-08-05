@@ -1,11 +1,17 @@
 #!/bin/bash
-# install — main interactive installer for aio-proxmox v4.1
+# install — main interactive installer for aio-proxmox v4.2
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$REPO_ROOT/lib/logging.sh"
 source "$REPO_ROOT/lib/common.sh"
 source "$REPO_ROOT/lib/service-actions.sh"
 source "$REPO_ROOT/lib/env-manager.sh"
+
+# P13: --version flag
+if [[ "${1:-}" == "--version" || "${1:-}" == "-v" ]]; then
+    echo "aio-proxmox $(get_script_version)"
+    exit 0
+fi
 
 # P8: Auto-init ENVIRONMENT if missing
 init_env
@@ -142,7 +148,7 @@ manage_lxc() {
 show_menu() {
   clear
   echo "===================================================="
-  echo "   aio-proxmox v4.1 — Homelab Installer"
+  echo "   aio-proxmox $(get_script_version) — Homelab Installer"
   echo "===================================================="
   echo "0)  Check Environment"
   echo "1)  Debian Base Setup (incl. 13.6.0 upgrade)"

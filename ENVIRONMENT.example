@@ -1,5 +1,5 @@
 ﻿#!/bin/bash
-# ENVIRONMENT.example â€” aio-proxmox v4.0
+# ENVIRONMENT.example — aio-proxmox v4.2
 # Copy this file to ENVIRONMENT and edit values for your setup
 # ============================================================
 

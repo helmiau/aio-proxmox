@@ -20,6 +20,36 @@ log_error() {
 # pct, qm, pveversion live in /usr/sbin:/sbin; must be prepended before any command -v check
 export PATH="/usr/sbin:/sbin:/usr/bin:/bin:/usr/local/sbin:/usr/local/bin" || true
 
+# --- Script versioning (P13) ---
+SCRIPT_VERSION_FILE="${SCRIPT_VERSION_FILE:-$(dirname "${BASH_SOURCE[0]}")/../VERSION}"
+
+get_script_version() {
+    local ver="unknown"
+    if [[ -f "$SCRIPT_VERSION_FILE" ]]; then
+        ver="$(head -n1 "$SCRIPT_VERSION_FILE" | tr -d '[:space:]')"
+    fi
+    echo "${ver:-unknown}"
+}
+
+is_script_version_at_least() {
+    # Compare dotted versions, e.g. is_script_version_at_least 4.2.0
+    local want="$1"
+    local have
+    have="$(get_script_version)"
+    [[ "$have" == "unknown" ]] && return 1
+    # shellcheck disable=SC2046
+    IFS='.' read -ra h <<< "$have"
+    # shellcheck disable=SC2046
+    IFS='.' read -ra w <<< "$want"
+    for i in 0 1 2; do
+        local hv="${h[$i]:-0}"
+        local wv="${w[$i]:-0}"
+        if (( hv > wv )); then return 0; fi
+        if (( hv < wv )); then return 1; fi
+    done
+    return 0
+}
+
 # Ensure pmxcfs is mounted (call before pct commands)
 ensure_pmxcfs() {
     if [[ -d "/etc/pve/nodes" ]]; then
