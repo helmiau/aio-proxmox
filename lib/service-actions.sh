@@ -6,14 +6,22 @@
 # Source common library
 source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 
-# Ensure Proxmox tools are in PATH
-# (handled globally in lib/common.sh — unconditional export)
+# Repo root (for svc-*.sh path resolution)
+LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$LIB_DIR/.." && pwd)"
+SERVICE_SCRIPT_DIR="${SERVICE_SCRIPT_DIR:-$REPO_ROOT/scripts}"
+
+# Resolve a service script path
+svc_script() {
+    echo "${SERVICE_SCRIPT_DIR}/svc-$1.sh"
+}
 
 # Service action dispatcher
 dispatch_action() {
     local action="$1"
     local service_name="$2"
-    local service_script="svc-${service_name}.sh"
+    local service_script
+    service_script="$(svc_script "$service_name")"
 
     if [[ ! -f "$service_script" ]]; then
         log_error "Service script $service_script not found"
@@ -23,7 +31,7 @@ dispatch_action() {
     case "$action" in
         install|uninstall|update|reinstall|status|start|stop|restart)
             log_info "Executing $action for service $service_name"
-            "$service_script" "$action"
+            bash "$service_script" "$action"
             local result=$?
             if [[ $result -eq 0 ]]; then
                 log_info "Service $service_name $action completed successfully"
@@ -52,12 +60,15 @@ install_service() {
     case "$install_mode" in
         host)
             log_info "Installing $service_name on host"
-            "svc-${service_name}.sh" install
+            bash "$(svc_script "$service_name")" install
             ;;
         lxc-new)
             log_info "Installing $service_name in new LXC container"
-            create_lxc_container "$service_name"
-            "svc-${service_name}.sh" install
+            if ! create_lxc_container "$service_name"; then
+                log_error "LXC creation failed for $service_name — aborting install"
+                return 1
+            fi
+            bash "$(svc_script "$service_name")" install
             ;;
         lxc-existing)
             local var_name="TARGET_${service_name^^}_CTID"
@@ -67,22 +78,30 @@ install_service() {
                 return 1
             fi
             log_info "Installing $service_name in existing LXC container $target_ctid"
-            "svc-${service_name}.sh" install
+            bash "$(svc_script "$service_name")" install
             ;;
         ask)
             log_info "Interactive installation for $service_name"
             read -p "Install $service_name on host (h), new LXC (n), or existing LXC (e)? [h/n/e]: " choice
             case "$choice" in
                 h|H)
-                    "svc-${service_name}.sh" install
+                    bash "$(svc_script "$service_name")" install
                     ;;
                 n|N)
-                    create_lxc_container "$service_name"
-                    "svc-${service_name}.sh" install
+                    if ! create_lxc_container "$service_name"; then
+                        log_error "LXC creation failed for $service_name — aborting install"
+                        return 1
+                    fi
+                    bash "$(svc_script "$service_name")" install
                     ;;
                 e|E)
                     read -p "Enter target CTID: " target_ctid
-                    "svc-${service_name}.sh" install
+                    if ! pct status "$target_ctid" >/dev/null 2>&1; then
+                        log_error "LXC $target_ctid does not exist or is not running"
+                        return 1
+                    fi
+                    log_info "Using existing LXC $target_ctid"
+                    bash "$(svc_script "$service_name")" install
                     ;;
                 *)
                     log_error "Invalid choice"
@@ -92,7 +111,7 @@ install_service() {
             ;;
         yes)
             log_info "Non-interactive install of $service_name on host"
-            "svc-${service_name}.sh" install
+            bash "$(svc_script "$service_name")" install
             ;;
         no)
             log_info "Skipping $service_name installation"
@@ -110,7 +129,7 @@ uninstall_service() {
 
     if is_service_installed "$service_name"; then
         log_info "Uninstalling $service_name"
-        "svc-${service_name}.sh" uninstall
+        bash "$(svc_script "$service_name")" uninstall
         # Release allocated resources
         local var_ip="SVC_${service_name^^}_IP"
         local var_port="SVC_${service_name^^}_PORT"
@@ -136,7 +155,7 @@ update_service() {
 
     if is_service_installed "$service_name"; then
         log_info "Updating $service_name"
-        "svc-${service_name}.sh" update
+        bash "$(svc_script "$service_name")" update
         log_info "Service $service_name updated successfully"
     else
         log_info "Service $service_name not installed, skipping update"
@@ -149,12 +168,12 @@ reinstall_service() {
 
     if is_service_installed "$service_name"; then
         log_info "Reinstalling $service_name"
-        "svc-${service_name}.sh" uninstall
-        "svc-${service_name}.sh" install
+        bash "$(svc_script "$service_name")" uninstall
+        bash "$(svc_script "$service_name")" install
         log_info "Service $service_name reinstalled successfully"
     else
         log_info "Service $service_name not installed, performing install instead"
-        "svc-${service_name}.sh" install
+        bash "$(svc_script "$service_name")" install
     fi
 }
 
@@ -164,7 +183,7 @@ get_service_status() {
 
     if is_service_installed "$service_name"; then
         log_info "Service $service_name is installed"
-        "svc-${service_name}.sh" status
+        bash "$(svc_script "$service_name")" status
     else
         log_info "Service $service_name is not installed"
     fi
@@ -215,9 +234,17 @@ create_lxc_container() {
         return 1
     fi
 
-    # Check if container already exists
-    if pct list | grep -q "^$hostname"; then
-        log_info "LXC container $hostname already exists"
+    # Resolve CTID: <PREFIX>_CTID from ENV, else next available
+    local var_ctid="${prefix}_CTID"
+    local ctid="${!var_ctid:-}"
+    if [[ -z "$ctid" ]]; then
+        ctid=$(find_next_ctid)
+        log_info "No ${prefix}_CTID set — using next available CTID $ctid"
+    fi
+
+    # Check if container already exists (by CTID or hostname)
+    if pct status "$ctid" >/dev/null 2>&1 || pct list | grep -qw "$hostname"; then
+        log_info "LXC container $hostname (CTID: $ctid) already exists"
         return 0
     fi
 
@@ -248,13 +275,21 @@ create_lxc_container() {
         fi
     fi
 
-    log_info "Creating LXC container $hostname (template: $tmpl_file)"
+    # Resolve CTID: <PREFIX>_CTID from ENV, else next available
+    local var_ctid="${prefix}_CTID"
+    local ctid="${!var_ctid:-}"
+    if [[ -z "$ctid" ]]; then
+        ctid=$(find_next_ctid)
+        log_info "No ${prefix}_CTID set — using next available CTID $ctid"
+    fi
+
+    log_info "Creating LXC container $hostname (CTID: $ctid, template: $tmpl_file)"
 
     # Create container
     local var_password="LXC_${prefix}_PASSWORD"
     local password="${!var_password:-${DEFAULT_LXC_ROOT_PASSWORD:-}}"
     
-    pct create "$hostname" "local:vztmpl/$tmpl_file" \
+    pct create "$ctid" "local:vztmpl/$tmpl_file" \
         --hostname "$hostname" \
         --memory "$ram_mb" "$swap_mb" \
         --disk "$disk_gb" \
@@ -267,11 +302,25 @@ create_lxc_container() {
         --ssh-keys "${SSH_PUBLIC_KEY:-}"
 
     if [[ $? -eq 0 ]]; then
-        log_info "LXC container $hostname created successfully"
+        log_success "LXC container $hostname created successfully (CTID: $ctid)"
     else
-        log_error "Failed to create LXC container $hostname"
+        log_error "Failed to create LXC container $hostname (CTID: $ctid)"
         return 1
     fi
+}
+
+# Find next available CTID (100+)
+find_next_ctid() {
+    local used
+    used=$(pct list 2>/dev/null | awk 'NR>1 {print $1}' | sort -n)
+    local next=100
+    for c in $used; do
+        if [[ "$next" -lt "$c" ]]; then
+            break
+        fi
+        next=$((c + 1))
+    done
+    echo "$next"
 }
 
 # Main entry point
