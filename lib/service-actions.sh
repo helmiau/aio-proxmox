@@ -263,15 +263,28 @@ create_lxc_container() {
     local tmpl_file storage="${LXC_TEMPLATE_STORAGE:-local}"
     tmpl_file=$(pveam list "$storage" 2>/dev/null | grep -E "$template_glob" | awk '{print $1}' | head -n1)
     if [[ -z "$tmpl_file" ]]; then
-        log_warn "Template matching '$template_glob' not found on $storage — downloading..."
+        # Auto-download for Alpine if enabled
         if [[ "$ostype" == "alpine" ]] && [[ "${ALPINE_LXC_AUTO_DOWNLOAD:-yes}" == "yes" ]]; then
+            log_warn "Template matching '$template_glob' not found on $storage — downloading..."
             pveam update
             tmpl_file=$(pveam available --section system | grep -E "$template_glob" | awk '{print $2}' | head -n1)
-            [[ -z "$tmpl_file" ]] && { log_error "Alpine template not available"; return 1; }
-            pveam download "$storage" "$tmpl_file"
-        else
-            log_error "Template not found and auto-download disabled. Run: pveam update && pveam download $storage <template>"
-            return 1
+            if [[ -n "$tmpl_file" ]]; then
+                pveam download "$storage" "$tmpl_file"
+            else
+                log_warn "Alpine template not available via pveam — falling back to template picker"
+            fi
+        fi
+        # Fallback: interactive template picker (downloaded + available)
+        if [[ -z "$tmpl_file" ]]; then
+            log_warn "No template matches '$template_glob' — showing template picker"
+            local picked
+            picked=$(pick_lxc_template)
+            if [[ -z "$picked" ]]; then
+                log_error "No template selected — aborting LXC creation"
+                return 1
+            fi
+            storage="${picked%%:vztmpl/*}"
+            tmpl_file="${picked##*:vztmpl/}"
         fi
     fi
 
@@ -289,7 +302,7 @@ create_lxc_container() {
     local var_password="LXC_${prefix}_PASSWORD"
     local password="${!var_password:-${DEFAULT_LXC_ROOT_PASSWORD:-}}"
     
-    pct create "$ctid" "local:vztmpl/$tmpl_file" \
+    pct create "$ctid" "$storage:vztmpl/$tmpl_file" \
         --hostname "$hostname" \
         --memory "$ram_mb" "$swap_mb" \
         --disk "$disk_gb" \

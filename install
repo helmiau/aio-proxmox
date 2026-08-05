@@ -1,5 +1,5 @@
-#!/bin/bash
-# install — main interactive installer for aio-proxmox v4.2
+﻿#!/bin/bash
+# install â€” main interactive installer for aio-proxmox v4.2
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$REPO_ROOT/lib/logging.sh"
@@ -29,7 +29,7 @@ service_name_by_index() {
     return 1
 }
 
-# Parse selection like "1-1,2" or "1-1" or "1" → action + list of services
+# Parse selection like "1-1,2" or "1-1" or "1" â†’ action + list of services
 parse_selection() {
     local input="$1"
     local action="" services=()
@@ -47,7 +47,7 @@ parse_selection() {
             fi
         done
     else
-        # Single service name (no action prefix) → default install
+        # Single service name (no action prefix) â†’ default install
         action="1"
         if svc=$(service_name_by_index "$input"); then
             services+=("$svc")
@@ -96,7 +96,7 @@ manage_services() {
     action_str=$(action_name "$action")
     
     for svc in "${services[@]}"; do
-        log_info "→ ${action_str}: ${svc}"
+        log_info "â†’ ${action_str}: ${svc}"
         case "$action_str" in
             install) install_service "$svc" ;;
             update) update_service "$svc" ;;
@@ -104,129 +104,6 @@ manage_services() {
             reinstall) reinstall_service "$svc" ;;
         esac
     done
-}
-
-pick_lxc_template() {
-    # --- Step 1: storage selection ---
-    local -a storages
-    mapfile -t storages < <(pvesm status -content vztmpl 2>/dev/null | awk 'NR>1 {print $1}')
-    local storage=""
-    if (( ${#storages[@]} > 0 )); then
-        echo ""
-        echo "--- Available Storages (vztmpl) ---"
-        local si=1
-        for s in "${storages[@]}"; do
-            echo "  $si) $s"
-            si=$((si+1))
-        done
-        read -r -p "Select storage (number) or type custom name (q=cancel): " s_choice
-        [[ "$s_choice" == "q" || -z "$s_choice" ]] && { echo ""; return 1; }
-        if [[ "$s_choice" =~ ^[0-9]+$ ]] && (( s_choice >= 1 && s_choice <= ${#storages[@]} )); then
-            storage="${storages[$((s_choice-1))]}"
-        else
-            storage="$s_choice"
-        fi
-    else
-        read -r -p "No vztmpl storage found. Type storage name (e.g. local): " storage
-        [[ -z "$storage" ]] && { echo ""; return 1; }
-    fi
-
-    # --- Step 2: template listing (downloaded first, --- separator, then available) ---
-    local -a dl avail
-    mapfile -t dl < <(pveam list "$storage" 2>/dev/null | awk 'NR>1 {print $1}' | sed 's/^[^:]*:\?vztmpl\///')
-    mapfile -t avail < <(pveam available 2>/dev/null | awk 'NR>1 {print $2}')
-    # available not yet downloaded
-    local -a avail_only=()
-    local t
-    for t in "${avail[@]:-}"; do
-        [[ -n "$t" ]] || continue
-        grep -qxF "$t" <(printf '%s\n' "${dl[@]}") || avail_only+=("$t")
-    done
-
-    local total=$(( ${#dl[@]} + ${#avail_only[@]} ))
-    echo ""
-    echo "--- LXC Templates on $storage ---"
-    local i=1
-    if (( ${#dl[@]} > 0 )); then
-        for t in "${dl[@]}"; do
-            [[ -n "$t" ]] || continue
-            echo "  $i) $t (downloaded)"
-            i=$((i+1))
-        done
-        echo "  -----"
-    else
-        echo "  (no downloaded templates on $storage)"
-    fi
-    if (( ${#avail_only[@]} > 0 )); then
-        for t in "${avail_only[@]}"; do
-            echo "  $i) $t"
-            i=$((i+1))
-        done
-    else
-        echo "  (no available templates)"
-    fi
-    echo ""
-    if (( total == 0 )); then
-        echo "No templates found. Run: pveam update"
-        return 1
-    fi
-
-    # --- Step 3: selection by number / keyword / full name ---
-    local picked=""
-    while [[ -z "$picked" ]]; do
-        read -r -p "Select template (number / keyword e.g. debian-13 / full name, q=cancel): " choice
-        [[ "$choice" == "q" || -z "$choice" ]] && { echo ""; return 1; }
-
-        if [[ "$choice" =~ ^[0-9]+$ ]]; then
-            local n=1 ok=0
-            for t in "${dl[@]}"; do
-                [[ -n "$t" ]] || continue
-                if (( n == choice )); then picked="$t"; ok=1; break; fi
-                n=$((n+1))
-            done
-            if (( !ok )); then
-                for t in "${avail_only[@]}"; do
-                    if (( n == choice )); then picked="$t"; ok=1; break; fi
-                    n=$((n+1))
-                done
-            fi
-            (( ok )) || { echo "Invalid number (1-$total)"; continue; }
-        else
-            # keyword / full name — exact match first, then substring
-            local -a matches=()
-            for t in "${dl[@]}" "${avail_only[@]}"; do
-                [[ -n "$t" ]] || continue
-                if [[ "$t" == "$choice" ]]; then
-                    matches=("$t"); break
-                elif [[ "$t" == *"$choice"* ]]; then
-                    matches+=("$t")
-                fi
-            done
-            case "${#matches[@]}" in
-                0) echo "No match for '$choice'"; continue ;;
-                1) picked="${matches[0]}" ;;
-                *)
-                    echo "Multiple matches:"
-                    local mi=1
-                    for t in "${matches[@]}"; do
-                        echo "  $mi) $t"
-                        mi=$((mi+1))
-                    done
-                    read -r -p "Choose number: " mi_choice
-                    [[ "$mi_choice" =~ ^[0-9]+$ ]] && (( mi_choice >= 1 && mi_choice <= ${#matches[@]} )) \
-                        && picked="${matches[$((mi_choice-1))]}" || { echo "Invalid"; continue; }
-                    ;;
-            esac
-        fi
-    done
-
-    # --- Step 4: auto-download if not downloaded ---
-    if ! grep -qxF "$picked" <(printf '%s\n' "${dl[@]}"); then
-        echo "Template not downloaded — downloading..."
-        pveam download "$storage" "$picked" || { echo "Download failed"; return 1; }
-    fi
-
-    echo "$storage:vztmpl/$picked"
 }
 
 manage_lxc() {
@@ -273,7 +150,7 @@ manage_lxc() {
 show_menu() {
   clear
   echo "===================================================="
-  echo "   aio-proxmox $(get_script_version) — Homelab Installer"
+  echo "   aio-proxmox $(get_script_version) â€” Homelab Installer"
   echo "===================================================="
   echo "0)  Check Environment"
   echo "1)  Debian Base Setup (incl. 13.6.0 upgrade)"
