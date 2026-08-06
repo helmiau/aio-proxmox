@@ -5,7 +5,7 @@
 # Default: co-located with 9Router (same CTID/IP)
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 source "$REPO_ROOT/lib/logging.sh"
 source "$REPO_ROOT/lib/common.sh"
 source "$REPO_ROOT/lib/service-actions.sh"

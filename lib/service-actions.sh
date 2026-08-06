@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Service lifecycle management for Debian â†’ Proxmox VE Homelab Installer
+# Service lifecycle management for Debian ???????? Proxmox VE Homelab Installer
 # Handles install, uninstall, update, reinstall, status, start, stop, restart
 
 # Source common library
@@ -10,6 +10,9 @@ source "$(dirname "${BASH_SOURCE[0]}")/common.sh"
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$LIB_DIR/.." && pwd)"
 SERVICE_SCRIPT_DIR="${SERVICE_SCRIPT_DIR:-$REPO_ROOT/scripts}"
+
+# CTID terakhir yang berhasil dibuat (untuk run_service_in_lxc)
+LAST_CREATED_CTID=""
 
 # Resolve a service script path
 svc_script() {
@@ -48,6 +51,39 @@ dispatch_action() {
 }
 
 # Install a service
+# Jalankan svc script di dalam LXC container (fleksibel: host vs container)
+# - Copy lib/ + ENVIRONMENT + script ke container
+# - Eksekusi bash svc.sh <action> di dalam container
+# ctid kosong = host mode (jalankan langsung)
+run_service_in_lxc() {
+    local ctid="$1" service_name="$2" action="$3"
+    local script
+    script="$(svc_script "$service_name")"
+
+    if [[ -z "$ctid" ]]; then
+        bash "$script" "$action"
+        return $?
+    fi
+
+    if ! pct status "$ctid" >/dev/null 2>&1; then
+        log_error "LXC $ctid tidak ada atau tidak running"
+        return 1
+    fi
+
+    local tmpdir="/tmp/aio-lxc"
+    pct exec "$ctid" -- mkdir -p "$tmpdir/lib" 2>/dev/null || true
+    for lib in common logging service-actions env-manager; do
+        pct push "$ctid" "$REPO_ROOT/lib/$lib.sh" "$tmpdir/lib/$lib.sh" 2>/dev/null || true
+    done
+    [[ -f "$REPO_ROOT/ENVIRONMENT" ]] && pct push "$ctid" "$REPO_ROOT/ENVIRONMENT" "$tmpdir/ENVIRONMENT" 2>/dev/null || true
+    pct push "$ctid" "$script" "$tmpdir/svc.sh" || { log_error "Gagal copy script ke LXC"; return 1; }
+
+    log_info "Menjalankan $service_name $action di dalam LXC $ctid"
+    # Export REPO_ROOT agar svc script menemukan lib di /tmp/aio-lxc
+    pct exec "$ctid" -- env REPO_ROOT="$tmpdir" bash "$tmpdir/svc.sh" "$action"
+}
+
+# Install a service
 install_service() {
     local service_name="$1"
     local var_name="INSTALL_${service_name^^}"
@@ -65,10 +101,10 @@ install_service() {
         lxc-new)
             log_info "Installing $service_name in new LXC container"
             if ! create_lxc_container "$service_name"; then
-                log_error "LXC creation failed for $service_name â€” aborting install"
+                log_error "LXC creation failed for $service_name ? aborting install"
                 return 1
             fi
-            bash "$(svc_script "$service_name")" install
+            run_service_in_lxc "$LAST_CREATED_CTID" "$service_name" install
             ;;
         lxc-existing)
             local var_name="TARGET_${service_name^^}_CTID"
@@ -78,7 +114,7 @@ install_service() {
                 return 1
             fi
             log_info "Installing $service_name in existing LXC container $target_ctid"
-            bash "$(svc_script "$service_name")" install
+            run_service_in_lxc "$target_ctid" "$service_name" install
             ;;
         ask)
             log_info "Interactive installation for $service_name"
@@ -89,10 +125,10 @@ install_service() {
                     ;;
                 n|N)
                     if ! create_lxc_container "$service_name"; then
-                        log_error "LXC creation failed for $service_name â€” aborting install"
+                        log_error "LXC creation failed for $service_name ? aborting install"
                         return 1
                     fi
-                    bash "$(svc_script "$service_name")" install
+                    run_service_in_lxc "$LAST_CREATED_CTID" "$service_name" install
                     ;;
                 e|E)
                     read -p "Enter target CTID: " target_ctid
@@ -101,7 +137,7 @@ install_service() {
                         return 1
                     fi
                     log_info "Using existing LXC $target_ctid"
-                    bash "$(svc_script "$service_name")" install
+                    run_service_in_lxc "$target_ctid" "$service_name" install
                     ;;
                 *)
                     log_error "Invalid choice"
@@ -246,7 +282,7 @@ create_lxc_container() {
     local picked
     picked=$(pick_lxc_template)
     if [[ -z "$picked" ]]; then
-        log_error "No template selected — aborting LXC creation"
+        log_error "No template selected ??? aborting LXC creation"
         return 1
     fi
     local storage="${picked%%:vztmpl/*}"
@@ -256,7 +292,7 @@ create_lxc_container() {
     local ctid="${!var_ctid:-}"
     if [[ -z "$ctid" ]]; then
         ctid=$(find_next_ctid)
-        log_info "No ${prefix}_CTID set — using next available CTID $ctid"
+        log_info "No ${prefix}_CTID set ??? using next available CTID $ctid"
     else
         local new_ctid
         new_ctid="$(prompt_field "${prefix}_CTID" "CTID")"
@@ -278,7 +314,7 @@ create_lxc_container() {
                 else
                     echo "${key}='${val}'" >> "$ENV_FILE"
                 fi
-                log_info "Saved ${key}='${val}' → ENVIRONMENT"
+                log_info "Saved ${key}='${val}' ??? ENVIRONMENT"
             done
             update_env_header "EDITED"
         fi
@@ -307,6 +343,7 @@ create_lxc_container() {
         --features "nesting=1"
 
     if [[ $? -eq 0 ]]; then
+        LAST_CREATED_CTID="$ctid"
         log_success "LXC container $hostname created successfully (CTID: $ctid)"
     else
         log_error "Failed to create LXC container $hostname (CTID: $ctid)"
