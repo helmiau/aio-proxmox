@@ -203,7 +203,10 @@ create_lxc_container() {
 
     local overrides=()
     prompt_field() {
-        local var="$1" label="$2" cur="${!var:-}"
+        local var="$1" label="$2" cur=""
+        if declare -p "$var" >/dev/null 2>&1; then
+            cur="${!var}"
+        fi
         local val=""
         if [[ -n "$cur" ]]; then
             read -r -p "[$label] default ENV: $cur (Enter=default / override): " val
