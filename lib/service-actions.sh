@@ -65,9 +65,32 @@ run_service_in_lxc() {
         return $?
     fi
 
+    # Pastikan container ADA dan RUNNING (pct push/exec butuh running)
     if ! pct status "$ctid" >/dev/null 2>&1; then
-        log_error "LXC $ctid tidak ada atau tidak running"
+        log_error "LXC $ctid tidak ada"
         return 1
+    fi
+    local cstate
+    cstate=$(pct status "$ctid" 2>/dev/null | awk '{print $2}')
+    if [[ "$cstate" != "running" ]]; then
+        log_warn "LXC $ctid sedang $cstate — menyalakan otomatis..."
+        if ! pct start "$ctid"; then
+            log_error "Gagal menyalakan LXC $ctid"
+            return 1
+        fi
+        # Tunggu sampai benar-benar running (maks 30 detik)
+        local tries=15
+        for ((i=0; i<tries; i++)); do
+            if [[ "$(pct status "$ctid" 2>/dev/null | awk '{print $2}')" == "running" ]]; then
+                break
+            fi
+            sleep 2
+        done
+        if [[ "$(pct status "$ctid" 2>/dev/null | awk '{print $2}')" != "running" ]]; then
+            log_error "LXC $ctid tidak kunjung running"
+            return 1
+        fi
+        log_success "LXC $ctid sekarang running"
     fi
 
     local tmpdir="/tmp/aio-lxc"
@@ -101,7 +124,7 @@ install_service() {
         lxc-new)
             log_info "Installing $service_name in new LXC container"
             if ! create_lxc_container "$service_name"; then
-                log_error "LXC creation failed for $service_name ? aborting install"
+                log_error "LXC creation failed for $service_name — aborting install"
                 return 1
             fi
             run_service_in_lxc "$LAST_CREATED_CTID" "$service_name" install
@@ -125,7 +148,7 @@ install_service() {
                     ;;
                 n|N)
                     if ! create_lxc_container "$service_name"; then
-                        log_error "LXC creation failed for $service_name ? aborting install"
+                        log_error "LXC creation failed for $service_name — aborting install"
                         return 1
                     fi
                     run_service_in_lxc "$LAST_CREATED_CTID" "$service_name" install
@@ -133,10 +156,10 @@ install_service() {
                 e|E)
                     read -p "Enter target CTID: " target_ctid
                     if ! pct status "$target_ctid" >/dev/null 2>&1; then
-                        log_error "LXC $target_ctid does not exist or is not running"
+                        log_error "LXC $target_ctid does not exist"
                         return 1
                     fi
-                    log_info "Using existing LXC $target_ctid"
+                    log_info "Using existing LXC $target_ctid (auto-start jika stopped)"
                     run_service_in_lxc "$target_ctid" "$service_name" install
                     ;;
                 *)
