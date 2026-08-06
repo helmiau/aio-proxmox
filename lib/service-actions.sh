@@ -297,7 +297,7 @@ create_lxc_container() {
     fi
 
     local var_bridge="${prefix}_BRIDGE"
-    local bridge="${!var_bridge:-$VM_BR_SERVICE_IP}"
+    local bridge="${!var_bridge:-$VM_BR_SERVICE}"
     if [[ -z "$bridge" ]]; then
         bridge="vmbr0"
     fi
