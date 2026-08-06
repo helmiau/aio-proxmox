@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 
 # Service lifecycle management for Debian â†’ Proxmox VE Homelab Installer
 # Handles install, uninstall, update, reinstall, status, start, stop, restart

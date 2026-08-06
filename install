@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 # install â€” main interactive installer for aio-proxmox v4.2
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
