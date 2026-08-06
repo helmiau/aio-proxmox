@@ -161,8 +161,11 @@ manage_lxc() {
             # --storage dipakai untuk disk rootfs, bukan template
             read -r -p "Disk storage (e.g. local-lvm, Enter=local): " disk_storage
             disk_storage="${disk_storage:-local-lvm}"
+            read -r -p "Disk size GB (Enter=8): " disk_size
+            disk_size="${disk_size:-8}"
             pct create "$ctid" "$tmpl" \
-                --hostname "$host" --storage "$disk_storage" \
+                --hostname "$host" \
+                --rootfs "$disk_storage:$disk_size" \
                 --net0 "name=eth0,bridge=vmbr0,ip=dhcp" --unprivileged 1
             ;;
         7)

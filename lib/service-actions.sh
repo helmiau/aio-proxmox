@@ -293,15 +293,17 @@ create_lxc_container() {
 
     pct create "$ctid" "$storage:vztmpl/$tmpl_file" \
         --hostname "$hostname" \
-        --memory "$ram_mb" "$swap_mb" \
-        --disk "$disk_gb" \
+        --memory "$ram_mb" \
+        --swap "$swap_mb" \
         --cores "$cores" \
+        --rootfs "$storage:${disk_gb}" \
         --net0 "name=eth0,bridge=$bridge,ip=$ip/$cidr,gw=$gateway" \
         --ostype "$ostype" \
         --nameserver "8.8.8.8" \
         --timezone "Europe/Berlin" \
         --password "$password" \
-        --ssh-keys "${SSH_PUBLIC_KEY:-}"
+        --unprivileged 1 \
+        --features "nesting=1"
 
     if [[ $? -eq 0 ]]; then
         log_success "LXC container $hostname created successfully (CTID: $ctid)"
