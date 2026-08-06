@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # install â€” main interactive installer for aio-proxmox v4.2
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -47,13 +47,17 @@ parse_selection() {
             fi
         done
     else
-        # Single service name (no action prefix) â†’ default install
+        # Single or comma-separated service names (no action prefix) → default install
         action="1"
-        if svc=$(service_name_by_index "$input"); then
-            services+=("$svc")
-        else
-            services+=("$input")
-        fi
+        IFS=',' read -ra parts <<< "$input"
+        for p in "${parts[@]}"; do
+            local svc=""
+            if svc=$(service_name_by_index "$p"); then
+                services+=("$svc")
+            else
+                services+=("$p")
+            fi
+        done
     fi
     
     echo "$action"
@@ -83,14 +87,35 @@ manage_services() {
     echo "  action: 1=install, 2=update, 3=uninstall, 4=reinstall"
     echo "  service: number or name (e.g. 1-1,2 = install cloudflared + tailscale)"
     echo "  single: '1' = install service #1, or type service name directly"
+    echo "  99 = exit / cancel"
     echo ""
     read -r -p "Your input (e.g. 1-1,2): " sel
-    
+
+    [[ "$sel" == "99" ]] && { echo "Cancelled"; return 0; }
+
     local action services=()
     local parsed
     parsed=$(parse_selection "$sel")
     action=$(echo "$parsed" | head -1)
     services=($(echo "$parsed" | tail -n +2))
+
+    # Validate: semua service harus dikenal; jika tidak → tanya ulang
+    local valid=true
+    local s2
+    for s2 in "${services[@]}"; do
+        if ! printf '%s\n' "${SERVICES[@]}" | grep -qxF "$s2"; then
+            echo "Unknown service: $s2"
+            valid=false
+        fi
+    done
+    if [[ "$valid" != true ]]; then
+        echo "Input tidak valid — silakan coba lagi (99 untuk keluar)"
+        read -r -p "Your input (e.g. 1-1,2): " sel
+        [[ "$sel" == "99" ]] && { echo "Cancelled"; return 0; }
+        parsed=$(parse_selection "$sel")
+        action=$(echo "$parsed" | head -1)
+        services=($(echo "$parsed" | tail -n +2))
+    fi
     
     local action_str
     action_str=$(action_name "$action")
