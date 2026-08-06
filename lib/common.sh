@@ -17,8 +17,55 @@ log_error() {
 }
 
 # Ensure Proxmox tools are in PATH (unconditional — SSH login PATH may lack /usr/sbin)
-# pct, qm, pveversion live in /usr/sbin:/sbin; must be prepended before any command -v check
-export PATH="/usr/sbin:/sbin:/usr/bin:/bin:/usr/local/sbin:/usr/local/bin" || true
+# Prepend (jangan timpa) agar binary Proxmox tersedia di semua shell
+# pct, qm, pveversion live in /usr/sbin:/sbin
+for _p in /usr/sbin /sbin /usr/local/sbin /usr/local/bin; do
+    case ":$PATH:" in
+        *":$_p:"*) ;;
+        *) PATH="$_p:$PATH" ;;
+    esac
+done
+export PATH
+
+# Pastikan binary Proxmox umum tersedia — jika belum, coba buat symlink ke /usr/local/bin
+# (berguna untuk shell non-login / client SSH tanpa profile)
+ensure_pve_binaries() {
+    local bin
+    for bin in pct qm pveam pvesm pvesh pveversion vzdump; do
+        if ! command -v "$bin" >/dev/null 2>&1; then
+            local src=""
+            for d in /usr/sbin /sbin /usr/bin /usr/local/sbin; do
+                if [[ -x "$d/$bin" ]]; then src="$d/$bin"; break; fi
+            done
+            if [[ -n "$src" && -d /usr/local/bin ]]; then
+                ln -sf "$src" "/usr/local/bin/$bin" 2>/dev/null || true
+            fi
+        fi
+    done
+}
+ensure_pve_binaries
+
+# Setup PATH persist untuk shell login interaktif (SSH client manapun)
+# Tulis /etc/profile.d/pve-path.sh — berlaku untuk semua user & shell login
+setup_pve_path() {
+    local prof="/etc/profile.d/pve-path.sh"
+    if [[ -w /etc/profile.d ]] && [[ ! -f "$prof" ]]; then
+        cat > "$prof" <<'EOF'
+# aio-proxmox: ensure Proxmox CLI tools on PATH for all login shells
+case ":$PATH:" in
+    *":/usr/sbin:"*) ;;
+    *) export PATH="/usr/sbin:/sbin:/usr/local/sbin:$PATH" ;;
+esac
+EOF
+        log_info "PATH setup tersimpan di $prof"
+    fi
+    # Juga untuk root .bashrc (interactive non-login)
+    if [[ -w /root ]]; then
+        if [[ -f /root/.bashrc ]] && ! grep -q "pve-path" /root/.bashrc; then
+            echo 'export PATH="/usr/sbin:/sbin:$PATH"  # aio-proxmox pve-path' >> /root/.bashrc
+        fi
+    fi
+}
 
 # --- Script versioning (P13) ---
 SCRIPT_VERSION_FILE="${SCRIPT_VERSION_FILE:-$(dirname "${BASH_SOURCE[0]}")/../VERSION}"

@@ -6,7 +6,8 @@ source "$REPO_ROOT/lib/logging.sh"
 source "$REPO_ROOT/lib/common.sh"
 source "$REPO_ROOT/lib/service-actions.sh"
 source "$REPO_ROOT/lib/env-manager.sh"
-
+# Pastikan pct/qm tersedia di semua sesi SSH (symlink + profile.d)
+setup_pve_path
 # P13: --version flag
 if [[ "${1:-}" == "--version" || "${1:-}" == "-v" ]]; then
     echo "aio-proxmox $(get_script_version)"

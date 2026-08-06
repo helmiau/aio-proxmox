@@ -7,6 +7,9 @@ source "$REPO_ROOT/lib/common.sh"
 source "$REPO_ROOT/lib/service-actions.sh"
 source "$REPO_ROOT/lib/env-manager.sh"
 
+# Pastikan pct/qm tersedia (symlink + profile.d)
+setup_pve_path
+
 # Auto-init ENV if missing
 init_env
 load_env
