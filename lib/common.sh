@@ -55,75 +55,61 @@ is_script_version_at_least() {
 # number / keyword / full name. Auto-downloads if picked template not present.
 # Output: <storage>:vztmpl/<name> or empty on cancel.
 pick_lxc_template() {
-    # --- Step 1: storage selection ---
+    # --- Step 1: storage selection (list + 99. Create new storage) ---
     local -a storages
     mapfile -t storages < <(pvesm status -content vztmpl 2>/dev/null | awk 'NR>1 {print $1}')
     local storage=""
-    if (( ${#storages[@]} > 0 )); then
-        echo ""
-        echo "--- Available Storages (vztmpl) ---"
-        local si=1
+    echo ""
+    echo "--- Available Storages (vztmpl) ---"
+    local si=1
+    for s in "${storages[@]}"; do
+        echo "  $si) $s"
+        si=$((si+1))
+    done
+    echo "  99) Create new storage (wizard)"
+    local s_choice=""
+    read -r -p "Select storage (number/name, 99=new, q=cancel): " s_choice
+    [[ "$s_choice" == "q" || -z "$s_choice" ]] && { echo ""; return 1; }
+    if [[ "$s_choice" == "99" ]]; then
+        create_new_storage
+        # Re-list after creation
+        mapfile -t storages < <(pvesm status -content vztmpl 2>/dev/null | awk 'NR>1 {print $1}')
+        si=1
         for s in "${storages[@]}"; do
             echo "  $si) $s"
             si=$((si+1))
         done
-        local s_choice=""
-        read -r -p "Select storage (number) or type custom name (q=cancel): " s_choice
+        read -r -p "Select storage (number/name, q=cancel): " s_choice
         [[ "$s_choice" == "q" || -z "$s_choice" ]] && { echo ""; return 1; }
-        if [[ "$s_choice" =~ ^[0-9]+$ ]] && (( s_choice >= 1 && s_choice <= ${#storages[@]} )); then
-            storage="${storages[$((s_choice-1))]}"
-        else
-            storage="$s_choice"
-        fi
+    fi
+    if [[ "$s_choice" =~ ^[0-9]+$ ]] && (( s_choice >= 1 && s_choice <= ${#storages[@]} )); then
+        storage="${storages[$((s_choice-1))]}"
     else
-        read -r -p "No vztmpl storage found. Type storage name (e.g. local): " storage
-        [[ -z "$storage" ]] && { echo ""; return 1; }
+        storage="$s_choice"
     fi
 
-    # --- Step 2: template listing (downloaded first, --- separator, then available) ---
-    local -a dl avail
+    # --- Step 2: template listing (downloaded only) ---
+    local -a dl
     mapfile -t dl < <(pveam list "$storage" 2>/dev/null | awk 'NR>1 {print $1}' | sed 's/^[^:]*:\?vztmpl\///')
-    mapfile -t avail < <(pveam available 2>/dev/null | awk 'NR>1 {print $2}')
-    local -a avail_only=()
-    local t
-    for t in "${avail[@]:-}"; do
-        [[ -n "$t" ]] || continue
-        grep -qxF "$t" <(printf '%s\n' "${dl[@]}") || avail_only+=("$t")
-    done
-
-    local total=$(( ${#dl[@]} + ${#avail_only[@]} ))
     echo ""
-    echo "--- LXC Templates on $storage ---"
+    echo "--- Downloaded Templates on $storage ---"
     local i=1
     if (( ${#dl[@]} > 0 )); then
         for t in "${dl[@]}"; do
             [[ -n "$t" ]] || continue
-            echo "  $i) $t (downloaded)"
-            i=$((i+1))
-        done
-        echo "  -----"
-    else
-        echo "  (no downloaded templates on $storage)"
-    fi
-    if (( ${#avail_only[@]} > 0 )); then
-        for t in "${avail_only[@]}"; do
             echo "  $i) $t"
             i=$((i+1))
         done
     else
-        echo "  (no available templates)"
+        echo "  (belum ada template di $storage)"
     fi
     echo ""
-    if (( total == 0 )); then
-        echo "No templates found. Run: pveam update"
-        return 1
-    fi
 
-    # --- Step 3: selection by number / keyword / full name ---
+    # --- Step 3: selection — number / keyword / full name ---
     local picked=""
     while [[ -z "$picked" ]]; do
         local choice=""
-        read -r -p "Select template (number / keyword e.g. debian-13 / full name, q=cancel): " choice
+        read -r -p "Pilih template atau ketik keyword yang ingin digunakan (q=cancel): " choice
         [[ "$choice" == "q" || -z "$choice" ]] && { echo ""; return 1; }
 
         if [[ "$choice" =~ ^[0-9]+$ ]]; then
@@ -133,16 +119,11 @@ pick_lxc_template() {
                 if (( n == choice )); then picked="$t"; ok=1; break; fi
                 n=$((n+1))
             done
-            if (( !ok )); then
-                for t in "${avail_only[@]}"; do
-                    if (( n == choice )); then picked="$t"; ok=1; break; fi
-                    n=$((n+1))
-                done
-            fi
-            (( ok )) || { echo "Invalid number (1-$total)"; continue; }
+            (( ok )) || { echo "Invalid number (1-$(( ${#dl[@]} )))"; continue; }
         else
+            # keyword / full name — exact match first, then substring
             local -a matches=()
-            for t in "${dl[@]}" "${avail_only[@]}"; do
+            for t in "${dl[@]}"; do
                 [[ -n "$t" ]] || continue
                 if [[ "$t" == "$choice" ]]; then
                     matches=("$t"); break
@@ -150,36 +131,101 @@ pick_lxc_template() {
                     matches+=("$t")
                 fi
             done
-            case "${#matches[@]}" in
-                0) echo "No match for '$choice'"; continue ;;
-                1) picked="${matches[0]}" ;;
-                *)
-                    echo "Multiple matches:"
-                    local mi=1
-                    for t in "${matches[@]}"; do
-                        echo "  $mi) $t"
-                        mi=$((mi+1))
-                    done
-                    local mi_choice=""
-                    read -r -p "Choose number: " mi_choice
-                    if [[ "$mi_choice" =~ ^[0-9]+$ ]] && (( mi_choice >= 1 && mi_choice <= ${#matches[@]} )); then
-                        picked="${matches[$((mi_choice-1))]}"
+            if (( ${#matches[@]} == 0 )); then
+                echo "Template '$choice' tidak tersedia di $storage"
+                read -r -p "Cari & unduh template '$choice' dari pveam? (y/N): " dl_yn
+                if [[ "$dl_yn" == "y" || "$dl_yn" == "Y" ]]; then
+                    pveam update >/dev/null 2>&1 || true
+                    local cand
+                    cand=$(pveam available 2>/dev/null | awk -v k="$choice" 'NR>1 && $2 ~ k {print $2}' | head -n1)
+                    if [[ -n "$cand" ]]; then
+                        echo "Menemukan: $cand — mengunduh..."
+                        pveam download "$storage" "$cand" || { echo "Download gagal"; continue; }
+                        dl+=("$cand")
+                        picked="$cand"
                     else
-                        echo "Invalid"
-                        continue
+                        echo "Tidak ada template cocok '$choice' di pveam"
                     fi
-                    ;;
-            esac
+                fi
+                continue
+            elif (( ${#matches[@]} == 1 )); then
+                picked="${matches[0]}"
+            else
+                echo "Multiple matches:"
+                local mi=1
+                for t in "${matches[@]}"; do
+                    echo "  $mi) $t"
+                    mi=$((mi+1))
+                done
+                local mi_choice=""
+                read -r -p "Choose number: " mi_choice
+                if [[ "$mi_choice" =~ ^[0-9]+$ ]] && (( mi_choice >= 1 && mi_choice <= ${#matches[@]} )); then
+                    picked="${matches[$((mi_choice-1))]}"
+                else
+                    echo "Invalid"
+                    continue
+                fi
+            fi
         fi
     done
 
-    # --- Step 4: auto-download if not downloaded ---
-    if ! grep -qxF "$picked" <(printf '%s\n' "${dl[@]}"); then
-        echo "Template not downloaded — downloading..."
-        pveam download "$storage" "$picked" || { echo "Download failed"; return 1; }
-    fi
-
     echo "$storage:vztmpl/$picked"
+}
+
+# Wizard: create new Proxmox storage (pvesm add)
+create_new_storage() {
+    local name type path
+    read -r -p "Storage name: " name
+    [[ -z "$name" ]] && { echo "Nama kosong — batal"; return 1; }
+    echo "Type: dir | lvm | lvmthin | zfspool | nfs | cifs | rbd"
+    read -r -p "Storage type: " type
+    case "$type" in
+        dir)
+            read -r -p "Path (e.g. /mnt/storage): " path
+            pvesm add dir "$name" --path "$path" --content vztmpl,iso,rootdir,images
+            ;;
+        lvm)
+            read -r -p "VG name (e.g. pve): " vg
+            pvesm add lvm "$name" --vgname "$vg" --content vztmpl,rootdir,images
+            ;;
+        lvmthin)
+            read -r -p "VG name: " vg
+            read -r -p "Thinpool name: " pool
+            pvesm add lvmthin "$name" --vgname "$vg" --thinpool "$pool" --content vztmpl,rootdir,images
+            ;;
+        zfspool)
+            read -r -p "ZFS pool name: " pool
+            pvesm add zfspool "$name" --pool "$pool" --content vztmpl,rootdir,images
+            ;;
+        nfs)
+            read -r -p "Server: " server
+            read -r -p "Export path: " export
+            pvesm add nfs "$name" --server "$server" --export "$export" --content vztmpl,iso
+            ;;
+        cifs)
+            read -r -p "Server: " server
+            read -r -p "Share: " share
+            read -r -p "Username: " user
+            read -r -sp "Password: " pass
+            echo ""
+            pvesm add cifs "$name" --server "$server" --share "$share" --username "$user" --password "$pass" --content vztmpl,iso
+            ;;
+        rbd)
+            read -r -p "Pool: " pool
+            read -r -p "Ceph mon host: " monhost
+            pvesm add rbd "$name" --pool "$pool" --monhost "$monhost" --content vztmpl,rootdir,images
+            ;;
+        *)
+            echo "Type tidak dikenal: $type — batal"
+            return 1
+            ;;
+    esac
+    if [[ $? -eq 0 ]]; then
+        log_success "Storage $name dibuat"
+    else
+        log_error "Gagal membuat storage $name"
+        return 1
+    fi
 }
 
 # Ensure pmxcfs is mounted (call before pct commands)

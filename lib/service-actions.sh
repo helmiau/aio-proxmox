@@ -1,6 +1,6 @@
-#!/bin/bash
+﻿#!/bin/bash
 
-# Service lifecycle management for Debian → Proxmox VE Homelab Installer
+# Service lifecycle management for Debian â†’ Proxmox VE Homelab Installer
 # Handles install, uninstall, update, reinstall, status, start, stop, restart
 
 # Source common library
@@ -65,7 +65,7 @@ install_service() {
         lxc-new)
             log_info "Installing $service_name in new LXC container"
             if ! create_lxc_container "$service_name"; then
-                log_error "LXC creation failed for $service_name — aborting install"
+                log_error "LXC creation failed for $service_name â€” aborting install"
                 return 1
             fi
             bash "$(svc_script "$service_name")" install
@@ -89,7 +89,7 @@ install_service() {
                     ;;
                 n|N)
                     if ! create_lxc_container "$service_name"; then
-                        log_error "LXC creation failed for $service_name — aborting install"
+                        log_error "LXC creation failed for $service_name â€” aborting install"
                         return 1
                     fi
                     bash "$(svc_script "$service_name")" install
@@ -194,114 +194,100 @@ create_lxc_container() {
     local service_name="$1"
     local prefix="${service_name^^}"
 
-    # Ensure pmxcfs is mounted before pct commands
     ensure_pmxcfs || return 1
-    
-    # Special case mapping for ENV prefixes
+
     [[ "$prefix" == "9ROUTER" ]] && prefix="ROUTER9"
     [[ "$prefix" == "HERMES-WEBUI" ]] && prefix="HERMES_WEBUI"
     [[ "$prefix" == "MIKROTIK" ]] && prefix="MIKROTIK"
     [[ "$prefix" == "STORAGE" ]] && prefix="STORAGE_MANAGER"
 
-    local var_hostname="${prefix}_HOSTNAME"
-    local var_ip="${prefix}_IP"
-    local var_cidr="${prefix}_CIDR"
-    local var_gateway="${prefix}_GATEWAY"
-    local var_ram_mb="${prefix}_RAM_MB"
-    local var_swap_mb="${prefix}_SWAP_MB"
-    local var_disk_gb="${prefix}_DISK_GB"
-    local var_cores="${prefix}_CORES"
-    local var_bridge="${prefix}_BRIDGE"
-    
-    local hostname="${!var_hostname:-}"
-    local ip="${!var_ip:-}"
-    local cidr="${!var_cidr:-}"
-    local gateway="${!var_gateway:-}"
-    local ram_mb="${!var_ram_mb:-}"
-    local swap_mb="${!var_swap_mb:-}"
-    local disk_gb="${!var_disk_gb:-}"
-    local cores="${!var_cores:-}"
-    local bridge="${!var_bridge:-}"
+    local overrides=()
+    prompt_field() {
+        local var="$1" label="$2" cur="${!var:-}"
+        local val=""
+        if [[ -n "$cur" ]]; then
+            read -r -p "[$label] default ENV: $cur (Enter=default / override): " val
+            val="${val:-$cur}"
+        else
+            read -r -p "[$label] (kosong = lewati): " val
+        fi
+        if [[ -n "$val" ]]; then
+            if [[ "$val" != "$cur" ]]; then
+                overrides+=("$var=$val")
+            fi
+            echo "$val"
+        fi
+    }
+
+    local hostname ip cidr gateway ram_mb swap_mb disk_gb cores
+    hostname="$(prompt_field "${prefix}_HOSTNAME" "Hostname")"
+    ip="$(prompt_field "${prefix}_IP" "IP")"
+    cidr="$(prompt_field "${prefix}_CIDR" "CIDR")"
+    gateway="$(prompt_field "${prefix}_GATEWAY" "Gateway")"
+    ram_mb="$(prompt_field "${prefix}_RAM_MB" "RAM (MB)")"
+    swap_mb="$(prompt_field "${prefix}_SWAP_MB" "Swap (MB)")"
+    disk_gb="$(prompt_field "${prefix}_DISK_GB" "Disk (GB)")"
+    cores="$(prompt_field "${prefix}_CORES" "Cores")"
 
     if [[ -z "$hostname" || -z "$ip" || -z "$cidr" || -z "$gateway" ]]; then
-        log_error "Missing LXC configuration for $service_name"
+        log_error "Missing LXC configuration for $service_name (hostname/ip/cidr/gateway wajib)"
         return 1
     fi
 
-    # Check if running on Proxmox host (pct command available)
-    if ! command -v pct >/dev/null 2>&1; then
-        log_error "pct command not found — must run on Proxmox host"
-        return 1
+    local var_bridge="${prefix}_BRIDGE"
+    local bridge="${!var_bridge:-$VM_BR_SERVICE_IP}"
+    if [[ -z "$bridge" ]]; then
+        bridge="vmbr0"
     fi
 
-    # Resolve CTID: <PREFIX>_CTID from ENV, else next available
+    local picked
+    picked=$(pick_lxc_template)
+    if [[ -z "$picked" ]]; then
+        log_error "No template selected — aborting LXC creation"
+        return 1
+    fi
+    local storage="${picked%%:vztmpl/*}"
+    local tmpl_file="${picked##*:vztmpl/}"
+
     local var_ctid="${prefix}_CTID"
     local ctid="${!var_ctid:-}"
     if [[ -z "$ctid" ]]; then
         ctid=$(find_next_ctid)
         log_info "No ${prefix}_CTID set — using next available CTID $ctid"
+    else
+        local new_ctid
+        new_ctid="$(prompt_field "${prefix}_CTID" "CTID")"
+        [[ -n "$new_ctid" ]] && ctid="$new_ctid"
     fi
 
-    # Check if container already exists (by CTID or hostname)
     if pct status "$ctid" >/dev/null 2>&1 || pct list | grep -qw "$hostname"; then
         log_info "LXC container $hostname (CTID: $ctid) already exists"
         return 0
     fi
 
-    # Resolve base OS: alpine (lightweight) or debian (default)
-    # Per-service override: <PREFIX>_LXC_TEMPLATE=alpine|debian, else global LXC_TEMPLATE
-    local var_template="${prefix}_LXC_TEMPLATE"
-    local base_os="${!var_template:-${LXC_TEMPLATE:-debian}}"
-    local ostype="debian"
-    local template_glob="${DEBIAN13_LXC_TEMPLATE_GLOB:-debian-13-standard*.tar.zst}"
-    if [[ "$base_os" == "alpine" ]]; then
-        ostype="alpine"
-        template_glob="${ALPINE_LXC_TEMPLATE_GLOB:-alpine-3*-standard*.tar.zst}"
-    fi
-
-    # Resolve actual template filename; download if missing
-    local tmpl_file storage="${LXC_TEMPLATE_STORAGE:-local}"
-    tmpl_file=$(pveam list "$storage" 2>/dev/null | grep -E "$template_glob" | awk '{print $1}' | head -n1)
-    if [[ -z "$tmpl_file" ]]; then
-        # Auto-download for Alpine if enabled
-        if [[ "$ostype" == "alpine" ]] && [[ "${ALPINE_LXC_AUTO_DOWNLOAD:-yes}" == "yes" ]]; then
-            log_warn "Template matching '$template_glob' not found on $storage — downloading..."
-            pveam update
-            tmpl_file=$(pveam available --section system | grep -E "$template_glob" | awk '{print $2}' | head -n1)
-            if [[ -n "$tmpl_file" ]]; then
-                pveam download "$storage" "$tmpl_file"
-            else
-                log_warn "Alpine template not available via pveam — falling back to template picker"
-            fi
+    if (( ${#overrides[@]} > 0 )); then
+        read -r -p "Simpan ${#overrides[@]} override ke ENVIRONMENT? (y/N): " save_ov
+        if [[ "$save_ov" == "y" || "$save_ov" == "Y" ]]; then
+            for ov in "${overrides[@]}"; do
+                local key="${ov%%=*}" val="${ov#*=}"
+                if grep -q "^${key}=" "$ENV_FILE"; then
+                    sed -i "s|^${key}=.*|${key}='${val}'|" "$ENV_FILE"
+                else
+                    echo "${key}='${val}'" >> "$ENV_FILE"
+                fi
+                log_info "Saved ${key}='${val}' → ENVIRONMENT"
+            done
+            update_env_header "EDITED"
         fi
-        # Fallback: interactive template picker (downloaded + available)
-        if [[ -z "$tmpl_file" ]]; then
-            log_warn "No template matches '$template_glob' — showing template picker"
-            local picked
-            picked=$(pick_lxc_template)
-            if [[ -z "$picked" ]]; then
-                log_error "No template selected — aborting LXC creation"
-                return 1
-            fi
-            storage="${picked%%:vztmpl/*}"
-            tmpl_file="${picked##*:vztmpl/}"
-        fi
-    fi
-
-    # Resolve CTID: <PREFIX>_CTID from ENV, else next available
-    local var_ctid="${prefix}_CTID"
-    local ctid="${!var_ctid:-}"
-    if [[ -z "$ctid" ]]; then
-        ctid=$(find_next_ctid)
-        log_info "No ${prefix}_CTID set — using next available CTID $ctid"
     fi
 
     log_info "Creating LXC container $hostname (CTID: $ctid, template: $tmpl_file)"
 
-    # Create container
     local var_password="LXC_${prefix}_PASSWORD"
     local password="${!var_password:-${DEFAULT_LXC_ROOT_PASSWORD:-}}"
-    
+    local ostype="debian"
+    [[ "$tmpl_file" == alpine-* ]] && ostype="alpine"
+
     pct create "$ctid" "$storage:vztmpl/$tmpl_file" \
         --hostname "$hostname" \
         --memory "$ram_mb" "$swap_mb" \
