@@ -30,6 +30,8 @@ ISO_URL="${MIKROTIK_ISO_URL:-https://download.mikrotik.com/routeros/7.14.3/chr-7
 VM_DIR="/var/lib/libvirt/images"
 ISO_PATH="$VM_DIR/mikrotik-chr.img"
 
+ensure_curl
+
 log_service() {
     log_info "[$SERVICE_NAME] $1"
 }

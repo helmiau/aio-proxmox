@@ -26,6 +26,8 @@ ADMIN_PASSWORD="${XUI_ADMIN_PASSWORD:-changeme123}"
 INSTALL_DIR="/usr/local/x-ui"
 SERVICE_USER="root"
 
+ensure_curl
+
 log_service() {
     log_info "[$SERVICE_NAME] $1"
 }

@@ -657,6 +657,19 @@ pkg_upgrade() {
     esac
 }
 
+# Pastikan tool dasar tersedia (curl, ca-certificates, dsb) — container minimal sering kosong
+ensure_curl() {
+    if ! command -v curl >/dev/null 2>&1; then
+        log_warn "curl tidak ada — menginstal..."
+        if command -v apk >/dev/null 2>&1; then
+            apk add --no-cache curl ca-certificates
+        elif command -v apt-get >/dev/null 2>&1; then
+            apt-get update -y >/dev/null 2>&1 || true
+            apt-get install -y curl ca-certificates
+        fi
+    fi
+}
+
 # systemd vs openrc abstraction (Alpine uses openrc, no systemctl)
 svc_enable() {
     if command -v systemctl >/dev/null 2>&1; then

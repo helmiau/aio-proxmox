@@ -21,6 +21,8 @@ USERS_YAML="${STORAGE_MANAGER_USERS_CONFIG:-/var/lib/storage-manager/users.yaml}
 FB_PORT="${FILEBROWSER_PORT:-8081}"
 DEFAULT_PASS="${STORAGE_MANAGER_DEFAULT_PASSWORD:-changeme123}"
 
+ensure_curl
+
 log_service() {
     log_info "[$SERVICE_NAME] $1"
 }

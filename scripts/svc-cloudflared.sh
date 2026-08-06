@@ -28,6 +28,8 @@ INSTALL_DIR="/opt/cloudflared"
 CONFIG_DIR="/etc/cloudflared"
 SERVICE_USER="cloudflared"
 
+ensure_curl
+
 log_service() {
     log_info "[$SERVICE_NAME] $1"
 }

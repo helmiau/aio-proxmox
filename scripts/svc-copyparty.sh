@@ -27,6 +27,8 @@ INSTALL_DIR="/opt/copyparty"
 CONFIG_DIR="/etc/copyparty"
 SERVICE_USER="copyparty"
 
+ensure_curl
+
 log_service() {
     log_info "[$SERVICE_NAME] $1"
 }

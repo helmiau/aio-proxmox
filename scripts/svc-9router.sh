@@ -31,6 +31,8 @@ SERVICE_USER="root"
 INSTALL_DIR="/usr/lib/node_modules/$NPM_PACKAGE"
 PM2_NAME="9router"
 
+ensure_curl
+
 log_service() {
     log_info "[$SERVICE_NAME] $1"
 }
@@ -38,9 +40,11 @@ log_service() {
 ensure_node() {
     if ! command -v node >/dev/null 2>&1; then
         log_service "Installing Node.js $NODE_MAJOR"
+        # Container minimal sering tanpa curl/ca-certificates — pastikan dulu
         if command -v apk >/dev/null 2>&1; then
-            pkg_install nodejs npm
+            pkg_install nodejs npm curl ca-certificates
         else
+            pkg_install curl ca-certificates gnupg 2>/dev/null || true
             curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash -
             pkg_install nodejs
         fi

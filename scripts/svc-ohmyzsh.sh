@@ -15,6 +15,8 @@ source "$REPO_ROOT/lib/env-manager.sh"
 SERVICE_NAME="ohmyzsh"
 ACTION="${1:-status}"
 
+ensure_curl
+
 log_service() {
     log_info "[$SERVICE_NAME] $1"
 }

@@ -33,6 +33,8 @@ INSTALL_DIR="/opt/hermes-webui"
 SERVICE_USER="root"
 PM2_NAME="hermes-webui"
 
+ensure_curl
+
 log_service() {
     log_info "[$SERVICE_NAME] $1"
 }

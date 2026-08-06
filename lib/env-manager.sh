@@ -108,9 +108,9 @@ prompt_service_env() {
     
     case "${service}" in
         "9ROUTER")
-            env_set 9ROUTER_IP       "$(env_prompt "9Router IP" "${9ROUTER_IP:-10.10.40.10}")"
-            env_set 9ROUTER_PORT     "$(env_prompt "9Router Port" "${9ROUTER_PORT:-20128}")"
-            env_set 9ROUTER_CTID     "$(env_prompt "9Router CTID" "${9ROUTER_CTID:-101}")"
+            env_set 9ROUTER_IP       "$(env_prompt "9Router IP" "${ROUTER9_IP:-10.10.40.10}")"
+            env_set 9ROUTER_PORT     "$(env_prompt "9Router Port" "${ROUTER9_PORT:-20128}")"
+            env_set 9ROUTER_CTID     "$(env_prompt "9Router CTID" "${ROUTER9_CTID:-101}")"
             env_set DEFAULT_ROOT_PASSWORD "$(env_prompt "9Router Password" "${DEFAULT_ROOT_PASSWORD:-changeme123}")"
             ;;
         "HEADROOM")

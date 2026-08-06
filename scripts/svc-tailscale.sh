@@ -23,6 +23,8 @@ ACCEPT_ROUTES="${TAILSCALE_ACCEPT_ROUTES:-true}"
 SSH_ENABLED="${TAILSCALE_SSH:-true}"
 EXTRA_ARGS="${TAILSCALE_EXTRA_ARGS:-}"
 
+ensure_curl
+
 log_service() {
     log_info "[$SERVICE_NAME] $1"
 }

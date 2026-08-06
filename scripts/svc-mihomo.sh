@@ -28,6 +28,8 @@ INSTALL_DIR="/opt/mihomo"
 CONFIG_DIR="/etc/mihomo"
 SERVICE_USER="mihomo"
 
+ensure_curl
+
 log_service() {
     log_info "[$SERVICE_NAME] $1"
 }
