@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================
-# ENV Manager (P8) — Auto-init + interactive edit
+# ENV Manager (P8) ??? Auto-init + interactive edit
 # - Jangan hapus ENVIRONMENT file, hanya edit konten
 # - Backup ENV sebelum modify
 # - Marker (DEFAULT)/(EDITED) per section
@@ -78,7 +78,6 @@ init_env() {
     fi
 }
 
-# --- Core: Interactive prompt for service ----------------------
 prompt_service_env() {
     local service="${1}"
     local marker="$(get_section_marker "${service}")"
@@ -88,121 +87,87 @@ prompt_service_env() {
         return 0
     fi
     
-    log_info "Configuring ${service} (DEFAULT → EDITED)..."
+    log_info "Configuring ${service} (DEFAULT ? EDITED)..."
     backup_env
     
-    # --- Dynamic prompt based on service ------------------------
+    # Helper: prompt with default, echo resolved value; no nested ${}
+    env_prompt() {
+        local label="$1" defval="$2"
+        local val=""
+        read -p "[$label] (default ${defval}): " val
+        echo "${val:-$defval}"
+    }
+    env_set() {
+        local key="$1" val="$2"
+        if grep -q "^${key}=" "${ENV_FILE}"; then
+            sed -i "s|^${key}=.*|${key}='${val}'|" "${ENV_FILE}"
+        else
+            echo "${key}='${val}'" >> "${ENV_FILE}"
+        fi
+    }
+    
     case "${service}" in
         "9ROUTER")
-            read -p "[9Router] IP (default ${9ROUTER_IP:-10.10.40.10}): " new_ip
-            read -p "[9Router] Port (default ${9ROUTER_PORT:-20128}): " new_port
-            read -p "[9Router] CTID (default ${9ROUTER_CTID:-101}): " new_ctid
-            read -p "[9Router] Password (default ${DEFAULT_ROOT_PASSWORD:-changeme123}): " new_pass
-            
-            # Update ENV
-            sed -i "s/^9ROUTER_IP=.*/9ROUTER_IP='${new_ip:-${9ROUTER_IP:-10.10.40.10}}'/" "${ENV_FILE}"
-            sed -i "s/^9ROUTER_PORT=.*/9ROUTER_PORT='${new_port:-${9ROUTER_PORT:-20128}}'/" "${ENV_FILE}"
-            sed -i "s/^9ROUTER_CTID=.*/9ROUTER_CTID='${new_ctid:-${9ROUTER_CTID:-101}}'/" "${ENV_FILE}"
-            sed -i "s/^DEFAULT_ROOT_PASSWORD=.*/DEFAULT_ROOT_PASSWORD='${new_pass:-${DEFAULT_ROOT_PASSWORD:-changeme123}}'/" "${ENV_FILE}"
+            env_set 9ROUTER_IP       "$(env_prompt "9Router IP" "${9ROUTER_IP:-10.10.40.10}")"
+            env_set 9ROUTER_PORT     "$(env_prompt "9Router Port" "${9ROUTER_PORT:-20128}")"
+            env_set 9ROUTER_CTID     "$(env_prompt "9Router CTID" "${9ROUTER_CTID:-101}")"
+            env_set DEFAULT_ROOT_PASSWORD "$(env_prompt "9Router Password" "${DEFAULT_ROOT_PASSWORD:-changeme123}")"
             ;;
         "HEADROOM")
-            read -p "[Headroom] IP (default ${HEADROOM_IP:-10.10.40.10}): " new_ip
-            read -p "[Headroom] Port (default ${HEADROOM_PORT:-8787}): " new_port
-            read -p "[Headroom] CTID (default ${HEADROOM_CTID:-101}): " new_ctid
-            
-            sed -i "s/^HEADROOM_IP=.*/HEADROOM_IP='${new_ip:-${HEADROOM_IP:-10.10.40.10}}'/" "${ENV_FILE}"
-            sed -i "s/^HEADROOM_PORT=.*/HEADROOM_PORT='${new_port:-${HEADROOM_PORT:-8787}}'/" "${ENV_FILE}"
-            sed -i "s/^HEADROOM_CTID=.*/HEADROOM_CTID='${new_ctid:-${HEADROOM_CTID:-101}}'/" "${ENV_FILE}"
+            env_set HEADROOM_IP      "$(env_prompt "Headroom IP" "${HEADROOM_IP:-10.10.40.10}")"
+            env_set HEADROOM_PORT    "$(env_prompt "Headroom Port" "${HEADROOM_PORT:-8787}")"
+            env_set HEADROOM_CTID    "$(env_prompt "Headroom CTID" "${HEADROOM_CTID:-101}")"
             ;;
         "HERMES")
-            read -p "[Hermes] IP (default ${HERMES_IP:-10.10.40.10}): " new_ip
-            read -p "[Hermes] Port (default ${HERMES_PORT:-8000}): " new_port
-            read -p "[Hermes] CTID (default ${HERMES_CTID:-101}): " new_ctid
-            
-            sed -i "s/^HERMES_IP=.*/HERMES_IP='${new_ip:-${HERMES_IP:-10.10.40.10}}'/" "${ENV_FILE}"
-            sed -i "s/^HERMES_PORT=.*/HERMES_PORT='${new_port:-${HERMES_PORT:-8000}}'/" "${ENV_FILE}"
-            sed -i "s/^HERMES_CTID=.*/HERMES_CTID='${new_ctid:-${HERMES_CTID:-101}}'/" "${ENV_FILE}"
+            env_set HERMES_IP        "$(env_prompt "Hermes IP" "${HERMES_IP:-10.10.40.10}")"
+            env_set HERMES_PORT      "$(env_prompt "Hermes Port" "${HERMES_PORT:-8000}")"
+            env_set HERMES_CTID      "$(env_prompt "Hermes CTID" "${HERMES_CTID:-101}")"
             ;;
         "HERMES_WEBUI")
-            read -p "[Hermes WebUI] IP (default ${HERMES_WEBUI_IP:-10.10.40.30}): " new_ip
-            read -p "[Hermes WebUI] Port (default ${HERMES_WEBUI_PORT:-3000}): " new_port
-            read -p "[Hermes WebUI] CTID (default ${HERMES_WEBUI_CTID:-103}): " new_ctid
-            
-            sed -i "s/^HERMES_WEBUI_IP=.*/HERMES_WEBUI_IP='${new_ip:-${HERMES_WEBUI_IP:-10.10.40.30}}'/" "${ENV_FILE}"
-            sed -i "s/^HERMES_WEBUI_PORT=.*/HERMES_WEBUI_PORT='${new_port:-${HERMES_WEBUI_PORT:-3000}}'/" "${ENV_FILE}"
-            sed -i "s/^HERMES_WEBUI_CTID=.*/HERMES_WEBUI_CTID='${new_ctid:-${HERMES_WEBUI_CTID:-103}}'/" "${ENV_FILE}"
+            env_set HERMES_WEBUI_IP  "$(env_prompt "Hermes WebUI IP" "${HERMES_WEBUI_IP:-10.10.40.30}")"
+            env_set HERMES_WEBUI_PORT "$(env_prompt "Hermes WebUI Port" "${HERMES_WEBUI_PORT:-3000}")"
+            env_set HERMES_WEBUI_CTID "$(env_prompt "Hermes WebUI CTID" "${HERMES_WEBUI_CTID:-103}")"
             ;;
         "CLOUDFLARED")
-            read -p "[Cloudflared] Tunnel Name (default ${CLOUDFLARED_TUNNEL_NAME:-homelab}): " new_name
-            read -p "[Cloudflared] Credentials File (default ${CLOUDFLARED_CREDENTIALS_FILE:-}): " new_creds
-            
-            sed -i "s/^CLOUDFLARED_TUNNEL_NAME=.*/CLOUDFLARED_TUNNEL_NAME='${new_name:-${CLOUDFLARED_TUNNEL_NAME:-homelab}}'/" "${ENV_FILE}"
-            sed -i "s/^CLOUDFLARED_CREDENTIALS_FILE=.*/CLOUDFLARED_CREDENTIALS_FILE='${new_creds:-${CLOUDFLARED_CREDENTIALS_FILE:-}}'/" "${ENV_FILE}"
+            env_set CLOUDFLARED_TUNNEL_NAME "$(env_prompt "Cloudflared Tunnel Name" "${CLOUDFLARED_TUNNEL_NAME:-homelab}")"
+            env_set CLOUDFLARED_CREDENTIALS_FILE "$(env_prompt "Cloudflared Credentials File" "${CLOUDFLARED_CREDENTIALS_FILE:-}")"
             ;;
         "TAILSCALE")
-            read -p "[Tailscale] Auth Key (default ${TAILSCALE_AUTHKEY:-}): " new_key
-            read -p "[Tailscale] Hostname (default ${TAILSCALE_HOSTNAME:-}): " new_host
-            
-            sed -i "s/^TAILSCALE_AUTHKEY=.*/TAILSCALE_AUTHKEY='${new_key:-${TAILSCALE_AUTHKEY:-}}'/" "${ENV_FILE}"
-            sed -i "s/^TAILSCALE_HOSTNAME=.*/TAILSCALE_HOSTNAME='${new_host:-${TAILSCALE_HOSTNAME:-}}'/" "${ENV_FILE}"
+            env_set TAILSCALE_AUTHKEY "$(env_prompt "Tailscale Auth Key" "${TAILSCALE_AUTHKEY:-}")"
+            env_set TAILSCALE_HOSTNAME "$(env_prompt "Tailscale Hostname" "${TAILSCALE_HOSTNAME:-}")"
             ;;
         "MIHOMO")
-            read -p "[Mihomo] IP (default ${MIHOMO_IP:-10.10.40.50}): " new_ip
-            read -p "[Mihomo] Port (default ${MIHOMO_PORT:-7890}): " new_port
-            read -p "[Mihomo] CTID (default ${MIHOMO_CTID:-105}): " new_ctid
-            
-            sed -i "s/^MIHOMO_IP=.*/MIHOMO_IP='${new_ip:-${MIHOMO_IP:-10.10.40.50}}'/" "${ENV_FILE}"
-            sed -i "s/^MIHOMO_PORT=.*/MIHOMO_PORT='${new_port:-${MIHOMO_PORT:-7890}}'/" "${ENV_FILE}"
-            sed -i "s/^MIHOMO_CTID=.*/MIHOMO_CTID='${new_ctid:-${MIHOMO_CTID:-105}}'/" "${ENV_FILE}"
+            env_set MIHOMO_IP        "$(env_prompt "Mihomo IP" "${MIHOMO_IP:-10.10.40.50}")"
+            env_set MIHOMO_PORT      "$(env_prompt "Mihomo Port" "${MIHOMO_PORT:-7890}")"
+            env_set MIHOMO_CTID      "$(env_prompt "Mihomo CTID" "${MIHOMO_CTID:-105}")"
             ;;
         "MIKROTIK")
-            read -p "[MikroTik] IP (default ${MIKROTIK_IP:-10.10.30.2}): " new_ip
-            read -p "[MikroTik] Port (default ${MIKROTIK_PORT:-22}): " new_port
-            read -p "[MikroTik] CTID (default ${MIKROTIK_CTID:-200}): " new_ctid
-            
-            sed -i "s/^MIKROTIK_IP=.*/MIKROTIK_IP='${new_ip:-${MIKROTIK_IP:-10.10.30.2}}'/" "${ENV_FILE}"
-            sed -i "s/^MIKROTIK_PORT=.*/MIKROTIK_PORT='${new_port:-${MIKROTIK_PORT:-22}}'/" "${ENV_FILE}"
-            sed -i "s/^MIKROTIK_CTID=.*/MIKROTIK_CTID='${new_ctid:-${MIKROTIK_CTID:-200}}'/" "${ENV_FILE}"
+            env_set MIKROTIK_IP      "$(env_prompt "MikroTik IP" "${MIKROTIK_IP:-10.10.30.2}")"
+            env_set MIKROTIK_PORT    "$(env_prompt "MikroTik Port" "${MIKROTIK_PORT:-22}")"
+            env_set MIKROTIK_CTID    "$(env_prompt "MikroTik CTID" "${MIKROTIK_CTID:-200}")"
             ;;
         "STORAGE")
-            read -p "[Storage] IP (default ${STORAGE_IP:-10.10.40.100}): " new_ip
-            read -p "[Storage] CTID (default ${STORAGE_CTID:-110}): " new_ctid
-            
-            sed -i "s/^STORAGE_IP=.*/STORAGE_IP='${new_ip:-${STORAGE_IP:-10.10.40.100}}'/" "${ENV_FILE}"
-            sed -i "s/^STORAGE_CTID=.*/STORAGE_CTID='${new_ctid:-${STORAGE_CTID:-110}}'/" "${ENV_FILE}"
+            env_set STORAGE_IP       "$(env_prompt "Storage IP" "${STORAGE_IP:-10.10.40.100}")"
+            env_set STORAGE_CTID     "$(env_prompt "Storage CTID" "${STORAGE_CTID:-110}")"
             ;;
         "TTYD")
-            read -p "[ttyd] Port (default ${TTYD_PORT:-7681}): " new_port
-            
-            sed -i "s/^TTYD_PORT=.*/TTYD_PORT='${new_port:-${TTYD_PORT:-7681}}'/" "${ENV_FILE}"
+            env_set TTYD_PORT        "$(env_prompt "ttyd Port" "${TTYD_PORT:-7681}")"
             ;;
         "XUI")
-            read -p "[X-UI] IP (default ${XUI_IP:-10.10.40.60}): " new_ip
-            read -p "[X-UI] Port (default ${XUI_PORT:-54321}): " new_port
-            read -p "[X-UI] CTID (default ${XUI_CTID:-106}): " new_ctid
-            
-            sed -i "s/^XUI_IP=.*/XUI_IP='${new_ip:-${XUI_IP:-10.10.40.60}}'/" "${ENV_FILE}"
-            sed -i "s/^XUI_PORT=.*/XUI_PORT='${new_port:-${XUI_PORT:-54321}}'/" "${ENV_FILE}"
-            sed -i "s/^XUI_CTID=.*/XUI_CTID='${new_ctid:-${XUI_CTID:-106}}'/" "${ENV_FILE}"
+            env_set XUI_IP           "$(env_prompt "X-UI IP" "${XUI_IP:-10.10.40.60}")"
+            env_set XUI_PORT         "$(env_prompt "X-UI Port" "${XUI_PORT:-54321}")"
+            env_set XUI_CTID         "$(env_prompt "X-UI CTID" "${XUI_CTID:-106}")"
             ;;
         "COPYPARTY")
-            read -p "[Copyparty] IP (default ${COPYPARTY_IP:-10.10.40.70}): " new_ip
-            read -p "[Copyparty] Port (default ${COPYPARTY_PORT:-3923}): " new_port
-            read -p "[Copyparty] CTID (default ${COPYPARTY_CTID:-107}): " new_ctid
-            
-            sed -i "s/^COPYPARTY_IP=.*/COPYPARTY_IP='${new_ip:-${COPYPARTY_IP:-10.10.40.70}}'/" "${ENV_FILE}"
-            sed -i "s/^COPYPARTY_PORT=.*/COPYPARTY_PORT='${new_port:-${COPYPARTY_PORT:-3923}}'/" "${ENV_FILE}"
-            sed -i "s/^COPYPARTY_CTID=.*/COPYPARTY_CTID='${new_ctid:-${COPYPARTY_CTID:-107}}'/" "${ENV_FILE}"
+            env_set COPYPARTY_IP     "$(env_prompt "Copyparty IP" "${COPYPARTY_IP:-10.10.40.70}")"
+            env_set COPYPARTY_PORT   "$(env_prompt "Copyparty Port" "${COPYPARTY_PORT:-3923}")"
+            env_set COPYPARTY_CTID   "$(env_prompt "Copyparty CTID" "${COPYPARTY_CTID:-107}")"
             ;;
         "FASTFETCH")
-            # Fastfetch has no configurable ENV vars
+            # no configurable ENV vars
             ;;
         "OHMYZSH")
-            # OhMyZsh has no configurable ENV vars
-            ;;
-        *)
-            log_warn "No interactive prompt defined for ${service}"
-            return 1
+            # no configurable ENV vars
             ;;
         *)
             log_warn "No interactive prompt defined for ${service}"

@@ -287,7 +287,8 @@ create_lxc_container() {
     log_info "Creating LXC container $hostname (CTID: $ctid, template: $tmpl_file)"
 
     local var_password="LXC_${prefix}_PASSWORD"
-    local password="${!var_password:-${DEFAULT_LXC_ROOT_PASSWORD:-}}"
+    local def_lxc_pass="${DEFAULT_LXC_ROOT_PASSWORD:-changeme}"
+    local password="${!var_password:-$def_lxc_pass}"
     local ostype="debian"
     [[ "$tmpl_file" == alpine-* ]] && ostype="alpine"
 

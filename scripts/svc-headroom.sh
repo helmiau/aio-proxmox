@@ -17,9 +17,12 @@ SERVICE_NAME="headroom"
 ACTION="${1:-status}"
 
 # Config from ENV (co-located with 9Router by default)
-CTID="${HEADROOM_CTID:-${ROUTER9_CTID:-101}}"
+def_r9_ctid="${ROUTER9_CTID:-101}"
+CTID="${HEADROOM_CTID:-$def_r9_ctid}"
 HOSTNAME="${HEADROOM_HOSTNAME:-headroom}"
-IP="${HEADROOM_IP:-${ROUTER9_IP:-10.10.40.10}}"
+# 2-step: fallback ROUTER9_IP via pre-resolved var (no nested ${})
+def_r9_ip="${ROUTER9_IP:-10.10.40.10}"
+IP="${HEADROOM_IP:-$def_r9_ip}"
 PORT="${HEADROOM_PORT:-8787}"
 EXTRAS="${HEADROOM_EXTRAS:-proxy,code,ml,mcp}"
 AUTH="${HEADROOM_AUTH:-}"
