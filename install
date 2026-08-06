@@ -157,9 +157,12 @@ manage_lxc() {
             local tmpl
             tmpl=$(pick_lxc_template)
             [[ -z "$tmpl" ]] && { echo "No template selected"; return; }
-            local storage="${tmpl%%:vztmpl/*}"
+            # ostemplate sudah menyertakan storage (local:vztmpl/...),
+            # --storage dipakai untuk disk rootfs, bukan template
+            read -r -p "Disk storage (e.g. local-lvm, Enter=local): " disk_storage
+            disk_storage="${disk_storage:-local-lvm}"
             pct create "$ctid" "$tmpl" \
-                --hostname "$host" --storage "$storage" \
+                --hostname "$host" --storage "$disk_storage" \
                 --net0 "name=eth0,bridge=vmbr0,ip=dhcp" --unprivileged 1
             ;;
         7)

@@ -55,28 +55,29 @@ is_script_version_at_least() {
 # number / keyword / full name. Auto-downloads if picked template not present.
 # Output: <storage>:vztmpl/<name> or empty on cancel.
 pick_lxc_template() {
-    # --- Step 1: storage selection (list + 99. Create new storage) ---
+    # IMPORTANT: hanya path hasil ke stdout; semua UI/echo ke stderr (> >&2)
+    # agar caller (tmpl=$(pick_lxc_template)) hanya menerima <storage>:vztmpl/<name>
     local -a storages
     mapfile -t storages < <(pvesm status -content vztmpl 2>/dev/null | awk 'NR>1 {print $1}')
     local storage=""
-    echo ""
-    echo "--- Available Storages (vztmpl) ---"
+    echo "" >&2
+    echo "--- Available Storages (vztmpl) ---" >&2
     local si=1
     for s in "${storages[@]}"; do
-        echo "  $si) $s"
+        echo "  $si) $s" >&2
         si=$((si+1))
     done
-    echo "  99) Create new storage (wizard)"
+    echo "  99) Create new storage (wizard)" >&2
     local s_choice=""
     read -r -p "Select storage (number/name, 99=new, q=cancel): " s_choice
     [[ "$s_choice" == "q" || -z "$s_choice" ]] && { echo ""; return 1; }
     if [[ "$s_choice" == "99" ]]; then
         create_new_storage
-        # Re-list after creation
         mapfile -t storages < <(pvesm status -content vztmpl 2>/dev/null | awk 'NR>1 {print $1}')
         si=1
+        echo "--- Available Storages (vztmpl) ---" >&2
         for s in "${storages[@]}"; do
-            echo "  $si) $s"
+            echo "  $si) $s" >&2
             si=$((si+1))
         done
         read -r -p "Select storage (number/name, q=cancel): " s_choice
@@ -88,28 +89,26 @@ pick_lxc_template() {
         storage="$s_choice"
     fi
 
-    # --- Step 2: template listing (downloaded only) ---
+    # --- template listing (downloaded) ---
     local -a dl
     mapfile -t dl < <(pveam list "$storage" 2>/dev/null | awk 'NR>1 {print $1}' | sed 's/^[^:]*:\?vztmpl\///')
-    echo ""
-    echo "--- Downloaded Templates on $storage ---"
-    local i=1
-    if (( ${#dl[@]} > 0 )); then
-        for t in "${dl[@]}"; do
-            [[ -n "$t" ]] || continue
-            echo "  $i) $t"
-            i=$((i+1))
-        done
-    else
-        echo "  (belum ada template di $storage)"
-    fi
-    echo ""
-
-    # --- Step 3: selection — number / keyword / full name ---
     local picked=""
     while [[ -z "$picked" ]]; do
+        echo "" >&2
+        echo "--- Downloaded Templates on $storage ---" >&2
+        local i=1
+        if (( ${#dl[@]} > 0 )); then
+            for t in "${dl[@]}"; do
+                [[ -n "$t" ]] || continue
+                echo "  $i) $t" >&2
+                i=$((i+1))
+            done
+        else
+            echo "  (belum ada template di $storage)" >&2
+        fi
+        echo "" >&2
         local choice=""
-        read -r -p "Pilih template atau ketik keyword yang ingin digunakan (q=cancel): " choice
+        read -r -p "Pilih template (nomor / keyword / nama lengkap, q=cancel): " choice
         [[ "$choice" == "q" || -z "$choice" ]] && { echo ""; return 1; }
 
         if [[ "$choice" =~ ^[0-9]+$ ]]; then
@@ -119,42 +118,43 @@ pick_lxc_template() {
                 if (( n == choice )); then picked="$t"; ok=1; break; fi
                 n=$((n+1))
             done
-            (( ok )) || { echo "Invalid number (1-$(( ${#dl[@]} )))"; continue; }
+            (( ok )) || { echo "Invalid number (1-$(( ${#dl[@]} )))" >&2; continue; }
         else
-            # keyword / full name — exact match first, then substring
+            # keyword / nama lengkap — exact dulu, lalu substring (case-insensitive)
             local -a matches=()
+            local t
             for t in "${dl[@]}"; do
                 [[ -n "$t" ]] || continue
                 if [[ "$t" == "$choice" ]]; then
                     matches=("$t"); break
-                elif [[ "$t" == *"$choice"* ]]; then
+                elif [[ "${t,,}" == *"${choice,,}"* ]]; then
                     matches+=("$t")
                 fi
             done
             if (( ${#matches[@]} == 0 )); then
-                echo "Template '$choice' tidak tersedia di $storage"
+                echo "Template '$choice' tidak tersedia di $storage" >&2
                 read -r -p "Cari & unduh template '$choice' dari pveam? (y/N): " dl_yn
                 if [[ "$dl_yn" == "y" || "$dl_yn" == "Y" ]]; then
                     pveam update >/dev/null 2>&1 || true
                     local cand
-                    cand=$(pveam available 2>/dev/null | awk -v k="$choice" 'NR>1 && $2 ~ k {print $2}' | head -n1)
+                    cand=$(pveam available 2>/dev/null | awk -v k="${choice,,}" 'NR>1 && tolower($2) ~ k {print $2}' | head -n1)
                     if [[ -n "$cand" ]]; then
-                        echo "Menemukan: $cand — mengunduh..."
-                        pveam download "$storage" "$cand" || { echo "Download gagal"; continue; }
+                        echo "Menemukan: $cand — mengunduh..." >&2
+                        pveam download "$storage" "$cand" || { echo "Download gagal" >&2; continue; }
                         dl+=("$cand")
                         picked="$cand"
                     else
-                        echo "Tidak ada template cocok '$choice' di pveam"
+                        echo "Tidak ada template cocok '$choice' di pveam" >&2
                     fi
                 fi
                 continue
             elif (( ${#matches[@]} == 1 )); then
                 picked="${matches[0]}"
             else
-                echo "Multiple matches:"
+                echo "Multiple matches:" >&2
                 local mi=1
                 for t in "${matches[@]}"; do
-                    echo "  $mi) $t"
+                    echo "  $mi) $t" >&2
                     mi=$((mi+1))
                 done
                 local mi_choice=""
@@ -162,8 +162,7 @@ pick_lxc_template() {
                 if [[ "$mi_choice" =~ ^[0-9]+$ ]] && (( mi_choice >= 1 && mi_choice <= ${#matches[@]} )); then
                     picked="${matches[$((mi_choice-1))]}"
                 else
-                    echo "Invalid"
-                    continue
+                    echo "Invalid" >&2
                 fi
             fi
         fi
@@ -176,8 +175,8 @@ pick_lxc_template() {
 create_new_storage() {
     local name type path
     read -r -p "Storage name: " name
-    [[ -z "$name" ]] && { echo "Nama kosong — batal"; return 1; }
-    echo "Type: dir | lvm | lvmthin | zfspool | nfs | cifs | rbd"
+    [[ -z "$name" ]] && { echo "Nama kosong â€” batal" >&2; return 1; }
+    echo "Type: dir | lvm | lvmthin | zfspool | nfs | cifs | rbd" >&2
     read -r -p "Storage type: " type
     case "$type" in
         dir)
@@ -207,7 +206,7 @@ create_new_storage() {
             read -r -p "Share: " share
             read -r -p "Username: " user
             read -r -sp "Password: " pass
-            echo ""
+            echo "" >&2
             pvesm add cifs "$name" --server "$server" --share "$share" --username "$user" --password "$pass" --content vztmpl,iso
             ;;
         rbd)
@@ -216,7 +215,7 @@ create_new_storage() {
             pvesm add rbd "$name" --pool "$pool" --monhost "$monhost" --content vztmpl,rootdir,images
             ;;
         *)
-            echo "Type tidak dikenal: $type — batal"
+            echo "Type tidak dikenal: $type â€” batal" >&2
             return 1
             ;;
     esac
