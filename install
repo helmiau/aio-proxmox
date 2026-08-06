@@ -142,6 +142,7 @@ manage_lxc() {
     echo "5) Enter shell (pct enter)"
     echo "6) Create container"
     echo "7) Destroy container"
+    echo "8) Edit network (bridge)"
     echo "q) Back to main menu"
     echo ""
     read -r -p "LXC action: " lxc_opt
@@ -164,15 +165,37 @@ manage_lxc() {
             disk_storage="${disk_storage:-local-lvm}"
             read -r -p "Disk size GB (Enter=8): " disk_size
             disk_size="${disk_size:-8}"
+            local bridge_choice
+            bridge_choice=$(pick_bridge)
+            [[ -z "$bridge_choice" ]] && { echo "Bridge tidak dipilih"; return; }
             pct create "$ctid" "$tmpl" \
                 --hostname "$host" \
                 --rootfs "$disk_storage:$disk_size" \
-                --net0 "name=eth0,bridge=vmbr0,ip=dhcp" --unprivileged 1
+                --net0 "name=eth0,bridge=$bridge_choice,ip=dhcp" --unprivileged 1
             ;;
         7)
             read -r -p "CTID: " ctid
             read -r -p "Destroy container $ctid? (y/N): " confirm
             [[ "$confirm" == "y" ]] && pct destroy "$ctid"
+            ;;
+        8)
+            read -r -p "CTID: " ctid
+            local net0
+            net0=$(pct config "$ctid" 2>/dev/null | grep -E '^net0:' | head -n1)
+            if [[ -z "$net0" ]]; then
+                echo "Tidak ada net0 pada LXC $ctid"
+                return
+            fi
+            local cur_bridge
+            cur_bridge=$(echo "$net0" | grep -oE 'bridge=[^,]+' | head -n1 | cut -d= -f2)
+            echo "net0 saat ini: $net0"
+            local newbridge
+            newbridge=$(pick_bridge)
+            [[ -z "$newbridge" ]] && { echo "Batal"; return; }
+            local newnet0
+            newnet0=$(echo "$net0" | sed "s/bridge=$cur_bridge/bridge=$newbridge/")
+            pct set "$ctid" --net0 "$newnet0"
+            echo "net0 diperbarui: $newnet0"
             ;;
         q) return 0 ;;
         *) echo "Invalid option" ;;

@@ -72,6 +72,33 @@ run_service_in_lxc() {
     fi
     local cstate
     cstate=$(pct status "$ctid" 2>/dev/null | awk '{print $2}')
+
+    # Auto-fix net0 jika bridge tidak valid (sebelum start)
+    local net0 cur_bridge
+    net0=$(pct config "$ctid" 2>/dev/null | grep -E '^net0:' | head -n1)
+    if [[ -n "$net0" ]]; then
+        cur_bridge=$(echo "$net0" | grep -oE 'bridge=[^,]+' | head -n1 | cut -d= -f2)
+        if [[ -n "$cur_bridge" ]]; then
+            local -a brs
+            mapfile -t brs < <(list_bridges)
+            local found=false
+            for b in "${brs[@]}"; do
+                [[ "$b" == "$cur_bridge" ]] && { found=true; break; }
+            done
+            if [[ "$found" != true ]]; then
+                log_warn "Bridge '$cur_bridge' pada LXC $ctid tidak valid"
+                local newbridge
+                newbridge="$(pick_bridge)"
+                if [[ -n "$newbridge" && "$newbridge" != "$cur_bridge" ]]; then
+                    local newnet0
+                    newnet0=$(echo "$net0" | sed "s/bridge=$cur_bridge/bridge=$newbridge/")
+                    log_info "Memperbaiki net0: $newnet0"
+                    pct set "$ctid" --net0 "$newnet0" || log_warn "Gagal set net0"
+                fi
+            fi
+        fi
+    fi
+
     if [[ "$cstate" != "running" ]]; then
         log_warn "LXC $ctid sedang $cstate — menyalakan otomatis..."
         if ! pct start "$ctid"; then
@@ -299,13 +326,16 @@ create_lxc_container() {
     local var_bridge="${prefix}_BRIDGE"
     local bridge="${!var_bridge:-$VM_BR_SERVICE}"
     if [[ -z "$bridge" ]]; then
-        bridge="vmbr0"
+        bridge="vmbr40"
     fi
+    # Validasi/listing bridge sebelum create (hindari bridge salah)
+    bridge="$(ensure_valid_bridge "$bridge")"
+    [[ -z "$bridge" ]] && { log_error "Bridge tidak dipilih — aborting"; return 1; }
 
     local picked
     picked=$(pick_lxc_template)
     if [[ -z "$picked" ]]; then
-        log_error "No template selected ??? aborting LXC creation"
+        log_error "No template selected — aborting LXC creation"
         return 1
     fi
     local storage="${picked%%:vztmpl/*}"

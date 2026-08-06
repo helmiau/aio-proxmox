@@ -67,6 +67,68 @@ EOF
     fi
 }
 
+# List bridge network yang tersedia (vmbr0, vmbr30, vmbr40, ...)
+list_bridges() {
+    local -a brs
+    if command -v brctl >/dev/null 2>&1; then
+        mapfile -t brs < <(brctl show 2>/dev/null | awk 'NR>1 && $1 ~ /^vmbr/ {print $1}')
+    fi
+    if (( ${#brs[@]} == 0 )); then
+        # fallback: ip link
+        mapfile -t brs < <(ip -o link show 2>/dev/null | grep -oE 'vmbr[0-9]+' | sort -u)
+    fi
+    printf '%s\n' "${brs[@]}"
+}
+
+# Pilih bridge via interaktif (default: VM_BR_SERVICE / vmbr40)
+# Output: nama bridge ke stdout, atau kosong jika cancel
+pick_bridge() {
+    local -a brs
+    mapfile -t brs < <(list_bridges)
+    local def="${VM_BR_SERVICE:-vmbr40}"
+    local choicen=0
+    if (( ${#brs[@]} > 0 )); then
+        echo "" >&2
+        echo "--- Available Bridges ---" >&2
+        local i=1
+        for b in "${brs[@]}"; do
+            local mark=""
+            [[ "$b" == "$def" ]] && mark=" (default)"
+            echo "  $i) $b$mark" >&2
+            i=$((i+1))
+        done
+        read -r -p "Pilih bridge (nomor, Enter=$def, q=cancel): " choicen
+        [[ "$choicen" == "q" ]] && { echo ""; return 1; }
+        if [[ -z "$choicen" ]]; then
+            echo "$def"
+            return 0
+        fi
+        if [[ "$choicen" =~ ^[0-9]+$ ]] && (( choicen >= 1 && choicen <= ${#brs[@]} )); then
+            echo "${brs[$((choicen-1))]}"
+            return 0
+        fi
+        echo "Invalid — pakai default $def" >&2
+        echo "$def"
+        return 0
+    fi
+    echo "$def"
+}
+
+# Validasi bridge ada; jika tidak, listing & auto-fix pilihan user
+ensure_valid_bridge() {
+    local current="$1"
+    local -a brs
+    mapfile -t brs < <(list_bridges)
+    if (( ${#brs[@]} > 0 )); then
+        for b in "${brs[@]}"; do
+            [[ "$b" == "$current" ]] && { echo "$current"; return 0; }
+        done
+    fi
+    # bridge tidak valid — minta user pilih
+    log_warn "Bridge '$current' tidak ada. Pilih bridge yang tersedia:"
+    pick_bridge
+}
+
 # --- Script versioning (P13) ---
 SCRIPT_VERSION_FILE="${SCRIPT_VERSION_FILE:-$(dirname "${BASH_SOURCE[0]}")/../VERSION}"
 
