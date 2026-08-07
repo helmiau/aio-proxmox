@@ -693,7 +693,7 @@ ensure_jq() {
 # Daftar per-distro (nama paket bisa berbeda apk vs apt).
 ensure_base_packages() {
     local -a missing=()
-    for c in curl wget git bash jq sed grep tar gzip ca-certificates procps awk; do
+    for c in curl wget git bash jq sed grep tar gzip ca-certificates procps awk xz-utils iproute2 openssh-client; do
         command -v "$c" >/dev/null 2>&1 || missing+=("$c")
     done
     # awk: virtual package di Debian (mawk/gawk) — cek lewat command -v awk
@@ -703,7 +703,7 @@ ensure_base_packages() {
     log_warn "Paket dasar belum lengkap — menginstal: ${missing[*]}"
     if command -v apk >/dev/null 2>&1; then
         apk update >/dev/null 2>&1 || true
-        apk add --no-cache curl wget git bash jq sed grep awk tar gzip ca-certificates procps 2>/dev/null || \
+        apk add --no-cache curl wget git bash jq sed grep tar gzip ca-certificates procps awk xz-utils iproute2 openssh-client 2>/dev/null || \
         apk add --no-cache curl wget git bash jq 2>/dev/null || true
     elif command -v apt-get >/dev/null 2>&1; then
         apt-get update -y >/dev/null 2>&1 || true
