@@ -227,6 +227,7 @@ uninstall_service() {
         # Remove from status file
         local status_file="/var/lib/homelab/service_status.json"
         if [[ -f "$status_file" ]]; then
+            ensure_jq
             jq --arg name "$service_name" 'del(.services[$name])' "$status_file" >"$status_file.tmp" && mv "$status_file.tmp" "$status_file"
         fi
         log_info "Service $service_name uninstalled successfully"

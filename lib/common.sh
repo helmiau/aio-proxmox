@@ -461,6 +461,7 @@ validate_env() {
 is_service_installed() {
     local service_name="$1"
     local status_file="/var/lib/homelab/service_status.json"
+    ensure_jq
 
     if [[ -f "$status_file" ]]; then
         if jq -e ".services.\"$service_name\".installed" "$status_file" >/dev/null 2>&1; then
@@ -474,6 +475,7 @@ is_service_installed() {
 mark_service_installed() {
     local service_name="$1"
     local status_file="/var/lib/homelab/service_status.json"
+    ensure_jq
 
     mkdir -p "$(dirname "$status_file")"
 
@@ -517,6 +519,7 @@ allocate_resource() {
     local ip="$1"
     local port="$2"
     local service="$3"
+    ensure_jq
     local status_file="/var/lib/homelab/allocations.json"
 
     mkdir -p "$(dirname "$status_file")"
@@ -535,6 +538,7 @@ allocate_resource() {
 # Release an IP/port from the registry
 release_resource() {
     local ip="$1"
+    ensure_jq
     local status_file="/var/lib/homelab/allocations.json"
 
     if [[ -f "$status_file" ]]; then
@@ -548,6 +552,7 @@ release_resource() {
 # Get next available IP in a subnet
 get_next_ip() {
     local subnet="$1"  # e.g., 10.10.40.0/24
+    ensure_jq
     local status_file="/var/lib/homelab/allocations.json"
 
     # Parse subnet
@@ -666,6 +671,19 @@ ensure_curl() {
         elif command -v apt-get >/dev/null 2>&1; then
             apt-get update -y >/dev/null 2>&1 || true
             apt-get install -y curl ca-certificates
+        fi
+    fi
+}
+
+# Pastikan jq tersedia (registry P3, is_service_installed)
+ensure_jq() {
+    if ! command -v jq >/dev/null 2>&1; then
+        log_warn "jq tidak ada — menginstal..."
+        if command -v apk >/dev/null 2>&1; then
+            apk add --no-cache jq
+        elif command -v apt-get >/dev/null 2>&1; then
+            apt-get update -y >/dev/null 2>&1 || true
+            apt-get install -y jq
         fi
     fi
 }
