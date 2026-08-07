@@ -44,10 +44,13 @@ ensure_python() {
         log_service "Installing python3"
         pkg_update && pkg_install python3 python3-pip python3-venv
     fi
-    # python3-venv (ensurepip) sering terpisah — pastikan venv bisa dibuat
-    if ! python3 -m venv --help >/dev/null 2>&1; then
-        log_service "python3-venv belum lengkap — menginstal"
+    # ensurepip (python3-venv) sering terpisah — deteksi langsung, bukan via venv --help
+    if ! python3 -m ensurepip --version >/dev/null 2>&1; then
+        log_service "python3-venv/ensurepip belum lengkap — menginstal"
         pkg_update && pkg_install python3-venv python3-pip 2>/dev/null || true
+        # verify
+        python3 -m ensurepip --version >/dev/null 2>&1 || \
+            log_error "ensurepip masih tidak tersedia — coba: apt install python3.11-venv"
     fi
     log_service "Python $(python3 --version) ready"
 }
