@@ -1,5 +1,5 @@
 #!/bin/bash
-# ENVIRONMENT.example — aio-proxmox v4.2
+# ENVIRONMENT.example — aio-proxmox v4.2.5 (Proxmox Services Manager)
 # Copy this file to ENVIRONMENT and edit values for your setup
 # ============================================================
 

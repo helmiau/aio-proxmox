@@ -1,4 +1,4 @@
-# Makefile — aio-proxmox v4.2
+# Makefile — aio-proxmox v4.2.5 (Proxmox Services Manager)
 
 .PHONY: all lint test clean
 

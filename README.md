@@ -1,8 +1,8 @@
-﻿# aio-proxmox — Debian → Proxmox VE Homelab Installer v4.2.4
+﻿# aio-proxmox — Proxmox Services Manager v4.2.5
 
 ## Overview
 
-Automated installer for a **personal homelab** on **Intel J1900 Mini PC (8GB RAM, SSD 64GB, Legacy/UEFI BIOS)**.
+Proxmox Services Manager (CLI) untuk **personal homelab** di **Intel J1900 Mini PC (8GB RAM, SSD 64GB, Legacy/UEFI BIOS)** — instalasi Debian→PVE, lifecycle service, LXC & VM, backup/restore.
 
 - **Debian 13 (Trixie)** → **Proxmox VE 9** → **AI gateway, VPN, NAS, remote access, monitoring**
 - **Flexible placement**: host, new LXC, or existing LXC per service
