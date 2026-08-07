@@ -296,6 +296,15 @@ MIKROTIK_CHR_URL='https://github.com/elseif/MikroTikPatch/releases/download/7.23
 MIKROTIK_WAN_IP='10.10.30.2'
 MIKROTIK_WAN_GATEWAY='10.10.30.1'
 MIKROTIK_WINBOX_PORT='8291'
+# --- MIKROTIK REMOTE ACCESS (WinBox external) ---
+# NAT: forward port publik -> MikroTik VM (winbox external via IP)
+MIKROTIK_NAT_ENABLE='yes'
+MIKROTIK_NAT_PUBLIC_IF='vmbr0'       # interface publik/WAN host
+MIKROTIK_NAT_TARGET_IP='10.10.30.2'  # IP MikroTik tujuan (WAN)
+# Cloudflare Tunnel TCP untuk WinBox (butuh service cloudflared terpasang)
+MIKROTIK_CF_TUNNEL_ENABLE='no'
+MIKROTIK_CF_TUNNEL_NAME='mikrotik'
+MIKROTIK_CF_TUNNEL_DOMAIN='winbox.helminet.my.id'
 
 # --- REGISTRY P3 ---
 REGISTRY_STATE_FILE='/var/lib/homelab/allocations.json'
