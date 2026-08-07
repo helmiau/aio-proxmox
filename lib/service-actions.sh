@@ -128,27 +128,22 @@ run_service_in_lxc() {
     [[ -f "$REPO_ROOT/ENVIRONMENT" ]] && pct push "$ctid" "$REPO_ROOT/ENVIRONMENT" "$tmpdir/ENVIRONMENT" 2>/dev/null || true
     pct push "$ctid" "$script" "$tmpdir/svc.sh" || { log_error "Gagal copy script ke LXC"; return 1; }
 
-    # Pastikan paket dasar ada di container (template minimal) sebelum install service
-    # Gunakan sh (bukan bash) ??? Alpine template tidak punya bash bawaan
-    log_info "Memastikan paket dasar di LXC $ctid..."
-    pct exec "$ctid" -- env REPO_ROOT="$tmpdir" sh -c '
-        if command -v bash >/dev/null 2>&1; then
-            export PATH="/usr/sbin:/sbin:/usr/bin:/bin:$PATH"
-            bash -c "source \"$REPO_ROOT/lib/common.sh\" && ensure_base_packages"
-        else
-            # Alpine/minimal tanpa bash: install bash + paket dasar dulu via apk/apt
-            if command -v apk >/dev/null 2>&1; then
-                apk update >/dev/null 2>&1 || true
-                apk add --no-cache bash curl wget git jq ca-certificates 2>/dev/null || true
-            elif command -v apt-get >/dev/null 2>&1; then
-                export DEBIAN_FRONTEND=noninteractive
-                apt-get update -y >/dev/null 2>&1 || true
-                apt-get install -y bash curl wget git jq ca-certificates 2>/dev/null || true
-            fi
-            export PATH="/usr/sbin:/sbin:/usr/bin:/bin:$PATH"
-            bash -c "source \"$REPO_ROOT/lib/common.sh\" && ensure_base_packages" 2>/dev/null || true
-        fi
-    ' 2>/dev/null || true
+    # Pastikan paket dasar ada di container (template minimal) sebelum install service.
+    # Langkah 1: install bash DULU via command langsung (Alpine tidak punya bash bawaan).
+    # Tidak menjalankan script sh apapun sebelum bash tersedia.
+    log_info "Memastikan bash & paket dasar di LXC $ctid..."
+    # Deteksi distro & install bash (command langsung, bukan script)
+    if pct exec "$ctid" -- test -x /sbin/apk 2>/dev/null; then
+        # Alpine — install bash dulu, lalu base packages
+        pct exec "$ctid" -- apk add --no-cache bash 2>/dev/null || true
+        pct exec "$ctid" -- apk add --no-cache curl wget git jq ca-certificates 2>/dev/null || true
+    elif pct exec "$ctid" -- test -x /usr/bin/apt-get 2>/dev/null; then
+        # Debian/Ubuntu — apt biasanya punya bash, pastikan saja
+        pct exec "$ctid" -- apt-get update -y 2>/dev/null || true
+        pct exec "$ctid" -- env DEBIAN_FRONTEND=noninteractive apt-get install -y bash curl wget git jq ca-certificates 2>/dev/null || true
+    fi
+    # Langkah 2: jalankan ensure_base_packages via bash (bash sudah pasti ada)
+    pct exec "$ctid" -- env REPO_ROOT="$tmpdir" bash -c 'source "$REPO_ROOT/lib/common.sh" && ensure_base_packages' 2>/dev/null || true
 
     log_info "Menjalankan $service_name $action di dalam LXC $ctid"
     # Export REPO_ROOT agar svc script menemukan lib di /tmp/aio-lxc.
