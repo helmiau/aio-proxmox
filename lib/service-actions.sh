@@ -154,7 +154,16 @@ run_service_in_lxc() {
 install_service() {
     local service_name="$1"
     local var_name="INSTALL_${service_name^^}"
-    local install_mode="${!var_name}"
+    # Guard: indirect expansion ke variabel undefined = unbound (set -u).
+    # MikroTik pakai MIKROTIK_CHR_INSTALL_MODE, bukan INSTALL_MIKROTIK.
+    local install_mode=""
+    if declare -p "$var_name" >/dev/null 2>&1; then
+        install_mode="${!var_name}"
+    fi
+    # Fallback khusus service non-standar (mikrotik: MIKROTIK_CHR_INSTALL_MODE)
+    if [[ -z "$install_mode" && "$service_name" == "mikrotik" ]]; then
+        install_mode="${MIKROTIK_CHR_INSTALL_MODE:-ask}"
+    fi
 
     if [[ -z "$install_mode" ]]; then
         install_mode="ask"
@@ -168,14 +177,17 @@ install_service() {
         lxc-new)
             log_info "Installing $service_name in new LXC container"
             if ! create_lxc_container "$service_name"; then
-                log_error "LXC creation failed for $service_name ??? aborting install"
+                log_error "LXC creation failed for $service_name — aborting install"
                 return 1
             fi
             run_service_in_lxc "$LAST_CREATED_CTID" "$service_name" install
             ;;
         lxc-existing)
             local var_name="TARGET_${service_name^^}_CTID"
-            local target_ctid="${!var_name}"  # TARGET_<NAME>_CTID from environment
+            local target_ctid=""
+            if declare -p "$var_name" >/dev/null 2>&1; then
+                target_ctid="${!var_name}"
+            fi
             if [[ -z "$target_ctid" ]]; then
                 log_error "TARGET_${service_name^^}_CTID not set for lxc-existing mode"
                 return 1
@@ -192,7 +204,7 @@ install_service() {
                     ;;
                 n|N)
                     if ! create_lxc_container "$service_name"; then
-                        log_error "LXC creation failed for $service_name ??? aborting install"
+                        log_error "LXC creation failed for $service_name — aborting install"
                         return 1
                     fi
                     run_service_in_lxc "$LAST_CREATED_CTID" "$service_name" install
@@ -218,6 +230,10 @@ install_service() {
             ;;
         no)
             log_info "Skipping $service_name installation"
+            ;;
+        vm)
+            log_info "Installing $service_name as VM (e.g. MikroTik CHR)"
+            bash "$(svc_script "$service_name")" install
             ;;
         *)
             log_error "Unknown install mode: $install_mode"
@@ -348,12 +364,12 @@ create_lxc_container() {
     fi
     # Validasi/listing bridge sebelum create (hindari bridge salah)
     bridge="$(ensure_valid_bridge "$bridge")"
-    [[ -z "$bridge" ]] && { log_error "Bridge tidak dipilih ??? aborting"; return 1; }
+    [[ -z "$bridge" ]] && { log_error "Bridge tidak dipilih — aborting"; return 1; }
 
     local picked
     picked=$(pick_lxc_template)
     if [[ -z "$picked" ]]; then
-        log_error "No template selected ??? aborting LXC creation"
+        log_error "No template selected — aborting LXC creation"
         return 1
     fi
     local storage="${picked%%:vztmpl/*}"
