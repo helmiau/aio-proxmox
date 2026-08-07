@@ -347,5 +347,8 @@ SYSLOG_SERVER=''
 LOG_RETENTION='2week'
 LOG_DIR='/var/log/homelab'
 
-# --- BACKUP ---
+# --- BACKUP (P17) ---
 BACKUP_DIR='/mnt/usb/proxmox-backup'
+BACKUP_ENABLE='yes'              # auto-backup sebelum update/uninstall
+BACKUP_MAX_KEEP='5'              # rotasi: simpan N backup per service
+BACKUP_TARGET='dir'              # dir | telegram | dir,telegram (koma)

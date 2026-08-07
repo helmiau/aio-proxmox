@@ -6,6 +6,7 @@ source "$REPO_ROOT/lib/logging.sh"
 source "$REPO_ROOT/lib/common.sh"
 source "$REPO_ROOT/lib/service-actions.sh"
 source "$REPO_ROOT/lib/env-manager.sh"
+source "$REPO_ROOT/lib/backup.sh"
 # Pastikan pct/qm tersedia di semua sesi SSH (symlink + profile.d)
 setup_pve_path
 # P13: --version flag
@@ -35,7 +36,7 @@ parse_selection() {
     local input="$1"
     local action="" services=()
     
-    if [[ "$input" =~ ^([1-4])-(.+)$ ]]; then
+    if [[ "$input" =~ ^([1-7])-(.+)$ ]]; then
         action="${BASH_REMATCH[1]}"
         local list="${BASH_REMATCH[2]}"
         IFS=',' read -ra parts <<< "$list"
@@ -72,6 +73,9 @@ action_name() {
         2) echo "update" ;;
         3) echo "uninstall" ;;
         4) echo "reinstall" ;;
+        5) echo "backup" ;;
+        6) echo "restore" ;;
+        7) echo "list-backup" ;;
     esac
 }
 
@@ -85,7 +89,7 @@ manage_services() {
     done
     echo ""
     echo "Input format: <action>-<service1>,<service2>"
-    echo "  action: 1=install, 2=update, 3=uninstall, 4=reinstall"
+    echo "  action: 1=install, 2=update, 3=uninstall, 4=reinstall, 5=backup, 6=restore, 7=list-backup"
     echo "  service: number or name (e.g. 1-1,2 = install cloudflared + tailscale)"
     echo "  single: '1' = install service #1, or type service name directly"
     echo "  99 = exit / cancel"
@@ -127,8 +131,9 @@ manage_services() {
             install) install_service "$svc" ;;
             update) update_service "$svc" ;;
             uninstall) uninstall_service "$svc" ;;
-            reinstall) reinstall_service "$svc" ;;
-        esac
+            reinstall) reinstall_service "$svc" ;;            backup) backup_service "$svc" "${BACKUP_TARGET:-dir}" ;;
+            restore) restore_service "$svc" ;;
+            list-backup) list_backups "$svc" ;;        esac
     done
 }
 

@@ -248,6 +248,10 @@ uninstall_service() {
 
     if is_service_installed "$service_name"; then
         log_info "Uninstalling $service_name"
+        # P17: auto-backup sebelum uninstall
+        if [[ "${BACKUP_ENABLE:-yes}" == "yes" ]]; then
+            backup_service "$service_name" "${BACKUP_TARGET:-dir}" 2>/dev/null || true
+        fi
         bash "$(svc_script "$service_name")" uninstall
         # Release allocated resources
         local var_ip="SVC_${service_name^^}_IP"
@@ -275,6 +279,10 @@ update_service() {
 
     if is_service_installed "$service_name"; then
         log_info "Updating $service_name"
+        # P17: auto-backup sebelum update
+        if [[ "${BACKUP_ENABLE:-yes}" == "yes" ]]; then
+            backup_service "$service_name" "${BACKUP_TARGET:-dir}" 2>/dev/null || true
+        fi
         bash "$(svc_script "$service_name")" update
         log_info "Service $service_name updated successfully"
     else
