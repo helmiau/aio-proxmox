@@ -128,6 +128,10 @@ run_service_in_lxc() {
     [[ -f "$REPO_ROOT/ENVIRONMENT" ]] && pct push "$ctid" "$REPO_ROOT/ENVIRONMENT" "$tmpdir/ENVIRONMENT" 2>/dev/null || true
     pct push "$ctid" "$script" "$tmpdir/svc.sh" || { log_error "Gagal copy script ke LXC"; return 1; }
 
+    # Pastikan paket dasar ada di container (template minimal) sebelum install service
+    log_info "Memastikan paket dasar di LXC $ctid..."
+    pct exec "$ctid" -- env REPO_ROOT="$tmpdir" bash -c 'source "$REPO_ROOT/lib/common.sh" && ensure_base_packages' 2>/dev/null || true
+
     log_info "Menjalankan $service_name $action di dalam LXC $ctid"
     # Export REPO_ROOT agar svc script menemukan lib di /tmp/aio-lxc
     pct exec "$ctid" -- env REPO_ROOT="$tmpdir" bash "$tmpdir/svc.sh" "$action"
