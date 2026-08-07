@@ -693,9 +693,11 @@ ensure_jq() {
 # Daftar per-distro (nama paket bisa berbeda apk vs apt).
 ensure_base_packages() {
     local -a missing=()
-    for c in curl wget git bash jq sed awk grep tar gzip ca-certificates procps; do
+    for c in curl wget git bash jq sed grep tar gzip ca-certificates procps awk; do
         command -v "$c" >/dev/null 2>&1 || missing+=("$c")
     done
+    # awk: virtual package di Debian (mawk/gawk) — cek lewat command -v awk
+    command -v awk >/dev/null 2>&1 || missing+=("awk")
     (( ${#missing[@]} == 0 )) && return 0
 
     log_warn "Paket dasar belum lengkap — menginstal: ${missing[*]}"
@@ -705,8 +707,9 @@ ensure_base_packages() {
         apk add --no-cache curl wget git bash jq 2>/dev/null || true
     elif command -v apt-get >/dev/null 2>&1; then
         apt-get update -y >/dev/null 2>&1 || true
-        apt-get install -y curl wget git bash jq sed grep awk tar gzip ca-certificates procps 2>/dev/null || \
-        apt-get install -y curl wget git jq 2>/dev/null || true
+        DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+            curl wget git bash jq sed grep mawk tar gzip ca-certificates procps 2>/dev/null || \
+        DEBIAN_FRONTEND=noninteractive apt-get install -y curl wget git jq ca-certificates 2>/dev/null || true
     else
         log_warn "Tidak ada package manager dikenali — lewati install paket dasar"
     fi
