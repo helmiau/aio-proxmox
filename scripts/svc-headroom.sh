@@ -44,15 +44,30 @@ ensure_python() {
         log_service "Installing python3"
         pkg_update && pkg_install python3 python3-pip python3-venv
     fi
-    # ensurepip (python3-venv) sering terpisah — deteksi langsung, bukan via venv --help
+    # ensurepip (python3-venv) sering terpisah — install version-specific biar pasti
     if ! python3 -m ensurepip --version >/dev/null 2>&1; then
-        log_service "python3-venv/ensurepip belum lengkap — menginstal"
+        log_service "ensurepip belum tersedia — menginstal python3-venv..."
+        local pyver
+        pyver="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null)"
+        if [[ -n "$pyver" ]] && command -v apt-get >/dev/null 2>&1; then
+            DEBIAN_FRONTEND=noninteractive apt-get install -y "python${pyver}-venv" "python${pyver}-pip" 2>/dev/null || true
+        fi
         pkg_update && pkg_install python3-venv python3-pip 2>/dev/null || true
         # verify
         python3 -m ensurepip --version >/dev/null 2>&1 || \
-            log_error "ensurepip masih tidak tersedia — coba: apt install python3.11-venv"
+            log_error "ensurepip masih tidak tersedia — coba manual: apt install python3.11-venv"
     fi
     log_service "Python $(python3 --version) ready"
+}
+
+create_venv() {
+    log_service "Creating virtual environment at $VENV_DIR"
+    if ! python3 -m venv "$VENV_DIR" 2>/dev/null; then
+        log_warn "venv gagal — pastikan ensurepip; coba bootstrap pip manual"
+        python3 -m ensurepip --upgrade 2>/dev/null || true
+        python3 -m venv "$VENV_DIR" || { log_error "Gagal membuat venv di $VENV_DIR"; return 1; }
+    fi
+    "$VENV_DIR/bin/pip" install --upgrade pip setuptools wheel
 }
 
 create_venv() {
