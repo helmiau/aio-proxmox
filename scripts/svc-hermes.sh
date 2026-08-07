@@ -83,6 +83,19 @@ clone_repo() {
     fi
 }
 
+# Build deps untuk paket Python dengan native extensions (litellm butuh Rust/Cargo)
+ensure_build_tools() {
+    log_service "Memastikan build tools (rust/gcc) untuk paket native..."
+    if command -v apk >/dev/null 2>&1; then
+        apk add --no-cache gcc musl-dev g++ make rust cargo 2>/dev/null || \
+        apk add --no-cache gcc musl-dev make 2>/dev/null || true
+    elif command -v apt-get >/dev/null 2>&1; then
+        DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential rustc cargo pkg-config python3-dev 2>/dev/null || \
+        DEBIAN_FRONTEND=noninteractive apt-get install -y build-essential python3-dev 2>/dev/null || true
+    fi
+    export PATH="/usr/local/cargo/bin:/root/.cargo/bin:$PATH" 2>/dev/null || true
+}
+
 create_venv() {
     log_service "Creating virtual environment"
     if ! python3 -m venv "$VENV_DIR" 2>/dev/null; then
@@ -96,6 +109,8 @@ create_venv() {
 install_deps() {
     log_service "Installing dependencies"
     cd "$INSTALL_DIR"
+    # Build tools untuk dependency native (litellm dll butuh Rust/Cargo)
+    ensure_build_tools
     "$VENV_DIR/bin/pip" install -e . --break-system-packages 2>/dev/null || \
     "$VENV_DIR/bin/pip" install -r requirements.txt --break-system-packages 2>/dev/null || \
     "$VENV_DIR/bin/pip" install hermes-agent --break-system-packages
