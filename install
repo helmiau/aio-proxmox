@@ -215,7 +215,7 @@ manage_lxc() {
 show_menu() {
   clear
   echo "===================================================="
-  echo "   aio-proxmox $(get_script_version) — Proxmox Services Manager"
+  echo "   Proxmox Services Manager v$(get_script_version)"
   echo "===================================================="
   echo "0)  Check Environment"
   echo "1)  Debian Base Setup (incl. 13.6.0 upgrade)"
