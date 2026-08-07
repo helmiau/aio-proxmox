@@ -284,7 +284,7 @@ pick_lxc_template() {
 create_new_storage() {
     local name type path
     read -r -p "Storage name: " name
-    [[ -z "$name" ]] && { echo "Nama kosong â€” batal" >&2; return 1; }
+    [[ -z "$name" ]] && { echo "Nama kosong — batal" >&2; return 1; }
     echo "Type: dir | lvm | lvmthin | zfspool | nfs | cifs | rbd" >&2
     read -r -p "Storage type: " type
     case "$type" in
@@ -324,7 +324,7 @@ create_new_storage() {
             pvesm add rbd "$name" --pool "$pool" --monhost "$monhost" --content vztmpl,rootdir,images
             ;;
         *)
-            echo "Type tidak dikenal: $type â€” batal" >&2
+            echo "Type tidak dikenal: $type — batal" >&2
             return 1
             ;;
     esac

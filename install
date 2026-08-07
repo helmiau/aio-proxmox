@@ -31,7 +31,7 @@ service_name_by_index() {
     return 1
 }
 
-# Parse selection like "1-1,2" or "1-1" or "1" â†’ action + list of services
+# Parse selection like "1-1,2" or "1-1" or "1" → action + list of services
 parse_selection() {
     local input="$1"
     local action="" services=()
@@ -126,14 +126,19 @@ manage_services() {
     action_str=$(action_name "$action")
     
     for svc in "${services[@]}"; do
-        log_info "â†’ ${action_str}: ${svc}"
+        log_info "→ ${action_str}: ${svc}"
+        local rc=0
         case "$action_str" in
-            install) install_service "$svc" ;;
-            update) update_service "$svc" ;;
-            uninstall) uninstall_service "$svc" ;;
-            reinstall) reinstall_service "$svc" ;;            backup) backup_service "$svc" "${BACKUP_TARGET:-dir}" ;;
-            restore) restore_service "$svc" ;;
-            list-backup) list_backups "$svc" ;;        esac
+            install) install_service "$svc"; rc=$? ;;
+            update) update_service "$svc"; rc=$? ;;
+            uninstall) uninstall_service "$svc"; rc=$? ;;
+            reinstall) reinstall_service "$svc"; rc=$? ;;
+            backup) backup_service "$svc" "${BACKUP_TARGET:-dir}"; rc=$? ;;
+            restore) restore_service "$svc"; rc=$? ;;
+            list-backup) list_backups "$svc"; rc=$? ;;
+        esac
+        # Cancel (rc=2) dari install_service → hentikan loop, kembali ke prompt service
+        [[ $rc -eq 2 ]] && break
     done
 }
 
@@ -210,7 +215,7 @@ manage_lxc() {
 show_menu() {
   clear
   echo "===================================================="
-  echo "   aio-proxmox $(get_script_version) â€” Homelab Installer"
+  echo "   aio-proxmox $(get_script_version) — Homelab Installer"
   echo "===================================================="
   echo "0)  Check Environment"
   echo "1)  Debian Base Setup (incl. 13.6.0 upgrade)"

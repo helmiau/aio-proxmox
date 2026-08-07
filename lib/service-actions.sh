@@ -197,7 +197,7 @@ install_service() {
             ;;
         ask)
             log_info "Interactive installation for $service_name"
-            read -p "Install $service_name on host (h), new LXC (n), or existing LXC (e)? [h/n/e]: " choice
+            read -p "Install $service_name on host (h), new LXC (n), existing LXC (e), or cancel (c)? [h/n/e/c]: " choice
             case "$choice" in
                 h|H)
                     bash "$(svc_script "$service_name")" install
@@ -217,6 +217,10 @@ install_service() {
                     fi
                     log_info "Using existing LXC $target_ctid (auto-start jika stopped)"
                     run_service_in_lxc "$target_ctid" "$service_name" install
+                    ;;
+                c|C|q|Q)
+                    log_info "Dibatalkan — kembali ke pemilihan service"
+                    return 2
                     ;;
                 *)
                     log_error "Invalid choice"
