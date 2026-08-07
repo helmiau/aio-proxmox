@@ -703,8 +703,9 @@ ensure_base_packages() {
     log_warn "Paket dasar belum lengkap — menginstal: ${missing[*]}"
     if command -v apk >/dev/null 2>&1; then
         apk update >/dev/null 2>&1 || true
-        apk add --no-cache curl wget git bash jq sed grep tar gzip ca-certificates procps awk xz-utils iproute2 openssh-client 2>/dev/null || \
-        apk add --no-cache curl wget git bash jq 2>/dev/null || true
+        # Alpine: procps-ng (bukan procps), awk via busybox; xz-utils, iproute2, openssh-client
+        apk add --no-cache curl wget git bash jq sed grep tar gzip ca-certificates procps-ng xz iproute2 openssh-client 2>/dev/null || \
+        apk add --no-cache curl wget git bash jq ca-certificates 2>/dev/null || true
     elif command -v apt-get >/dev/null 2>&1; then
         apt-get update -y >/dev/null 2>&1 || true
         DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \

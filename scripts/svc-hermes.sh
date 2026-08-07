@@ -48,7 +48,12 @@ ensure_user() {
 ensure_python() {
     if ! command -v python3 >/dev/null 2>&1; then
         log_service "Installing python3"
-        pkg_update && pkg_install python3 python3-pip python3-venv
+        if command -v apk >/dev/null 2>&1; then
+            # Alpine: python3 sudah termasuk pip/venv
+            apk add --no-cache python3 py3-pip 2>/dev/null || true
+        else
+            pkg_update && pkg_install python3 python3-pip python3-venv
+        fi
     fi
     # ensurepip (python3-venv) sering terpisah — install version-specific biar pasti
     if ! python3 -m ensurepip --version >/dev/null 2>&1; then
@@ -57,8 +62,13 @@ ensure_python() {
         pyver="$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")' 2>/dev/null)"
         if [[ -n "$pyver" ]] && command -v apt-get >/dev/null 2>&1; then
             DEBIAN_FRONTEND=noninteractive apt-get install -y "python${pyver}-venv" "python${pyver}-pip" 2>/dev/null || true
+        elif command -v apk >/dev/null 2>&1; then
+            # Alpine: venv/pip menyatu di python3; py3-pip untuk pip tambahan
+            apk add --no-cache py3-pip py3-virtualenv 2>/dev/null || true
+            python3 -m ensurepip --upgrade 2>/dev/null || true
+        else
+            pkg_update && pkg_install python3-venv python3-pip 2>/dev/null || true
         fi
-        pkg_update && pkg_install python3-venv python3-pip 2>/dev/null || true
         python3 -m ensurepip --version >/dev/null 2>&1 || \
             log_error "ensurepip masih tidak tersedia — coba manual: apt install python3.11-venv"
     fi
