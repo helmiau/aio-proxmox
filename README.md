@@ -14,14 +14,30 @@ Automated installer for a **personal homelab** on **Intel J1900 Mini PC (8GB RAM
 
 ## Quick Start
 
+> **Asumsi:** Debian 13 minimal / Proxmox VE base **tidak menyertakan** paket dasar
+> (curl, wget, git, bash, jq, ca-certificates, build tools, dll). Langkah 0 memastikan semuanya ada.
+
 ```bash
-# 1. Install Debian 13 minimal (netinst) with 26 GiB root + 1 GiB swap
+# 0. Install paket dasar (Debian minimal / Proxmox base sering kosong)
+apt-get update -y
+apt-get install -y curl wget git bash ca-certificates gnupg jq \
+    sed awk grep tar gzip xz-utils procps iproute2 openssh-client
+
+# 1. Install Debian 13 minimal (netinst) dengan root 26 GiB + swap 1 GiB
+#    (lewati langkah 0 jika sudah Proxmox VE dengan paket lengkap)
+
 # 2. Clone repo
 git clone https://github.com/helmiau/aio-proxmox
 cd aio-proxmox
-# 3. Run installer (ENVIRONMENT will be auto-initialized)
+
+# 3. Run installer (ENVIRONMENT akan auto-initialized;
+#    paket dasar untuk LXC dijamin otomatis via ensure_base_packages)
 bash install
 ```
+
+**Paket dasar untuk LXC** dijamin otomatis oleh installer:
+`ensure_base_packages()` menginstal `curl wget git bash jq ca-certificates` (dan lainnya)
+di dalam container **sebelum** service di-install — template LXC minimal tidak perlu di-setup manual.
 
 ## Features
 
