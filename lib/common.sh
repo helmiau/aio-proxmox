@@ -482,7 +482,7 @@ mark_service_installed() {
     if [[ -f "$status_file" ]]; then
         jq --arg name "$service_name" '.services[$name].installed = true' "$status_file" >"$status_file.tmp" && mv "$status_file.tmp" "$status_file"
     else
-        jq -n --arg name "$service_name" '{"services": {"'$name'": {"installed": true}}}' >"$status_file"
+        jq -n --arg name "$service_name" '{"services": {($name): {"installed": true}}}' >"$status_file"
     fi
 
     log_info "Marked service $service_name as installed"
@@ -529,7 +529,7 @@ allocate_resource() {
             '.allocations[$ip] = {"port": $port, "service": $service}' "$status_file" >"$status_file.tmp" && mv "$status_file.tmp" "$status_file"
     else
         jq -n --arg ip "$ip" --argjson port "$port" --arg service "$service" \
-            '{"allocations": {"'$ip'": {"port": $port, "service": $service}}}' >"$status_file"
+            '{"allocations": {($ip): {"port": $port, "service": $service}}}' >"$status_file"
     fi
 
     log_info "Allocated IP $ip:PORT $port for service $service"
