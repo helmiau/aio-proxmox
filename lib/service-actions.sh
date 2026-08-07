@@ -100,7 +100,7 @@ run_service_in_lxc() {
     fi
 
     if [[ "$cstate" != "running" ]]; then
-        log_warn "LXC $ctid sedang $cstate — menyalakan otomatis..."
+        log_warn "LXC $ctid sedang $cstate ??? menyalakan otomatis..."
         if ! pct start "$ctid"; then
             log_error "Gagal menyalakan LXC $ctid"
             return 1
@@ -129,14 +129,32 @@ run_service_in_lxc() {
     pct push "$ctid" "$script" "$tmpdir/svc.sh" || { log_error "Gagal copy script ke LXC"; return 1; }
 
     # Pastikan paket dasar ada di container (template minimal) sebelum install service
+    # Gunakan sh (bukan bash) ??? Alpine template tidak punya bash bawaan
     log_info "Memastikan paket dasar di LXC $ctid..."
-    pct exec "$ctid" -- env REPO_ROOT="$tmpdir" bash -c 'source "$REPO_ROOT/lib/common.sh" && ensure_base_packages' 2>/dev/null || true
+    pct exec "$ctid" -- env REPO_ROOT="$tmpdir" sh -c '
+        if command -v bash >/dev/null 2>&1; then
+            export PATH="/usr/sbin:/sbin:/usr/bin:/bin:$PATH"
+            bash -c "source \"$REPO_ROOT/lib/common.sh\" && ensure_base_packages"
+        else
+            # Alpine/minimal tanpa bash: install bash + paket dasar dulu via apk/apt
+            if command -v apk >/dev/null 2>&1; then
+                apk update >/dev/null 2>&1 || true
+                apk add --no-cache bash curl wget git jq ca-certificates 2>/dev/null || true
+            elif command -v apt-get >/dev/null 2>&1; then
+                export DEBIAN_FRONTEND=noninteractive
+                apt-get update -y >/dev/null 2>&1 || true
+                apt-get install -y bash curl wget git jq ca-certificates 2>/dev/null || true
+            fi
+            export PATH="/usr/sbin:/sbin:/usr/bin:/bin:$PATH"
+            bash -c "source \"$REPO_ROOT/lib/common.sh\" && ensure_base_packages" 2>/dev/null || true
+        fi
+    ' 2>/dev/null || true
 
     log_info "Menjalankan $service_name $action di dalam LXC $ctid"
-    # Export REPO_ROOT agar svc script menemukan lib di /tmp/aio-lxc
+    # Export REPO_ROOT agar svc script menemukan lib di /tmp/aio-lxc.
+    # bash dijamin ada (bootstrap di atas install bash utk Alpine/minimal)
     pct exec "$ctid" -- env REPO_ROOT="$tmpdir" bash "$tmpdir/svc.sh" "$action"
 }
-
 # Install a service
 install_service() {
     local service_name="$1"
@@ -155,7 +173,7 @@ install_service() {
         lxc-new)
             log_info "Installing $service_name in new LXC container"
             if ! create_lxc_container "$service_name"; then
-                log_error "LXC creation failed for $service_name — aborting install"
+                log_error "LXC creation failed for $service_name ??? aborting install"
                 return 1
             fi
             run_service_in_lxc "$LAST_CREATED_CTID" "$service_name" install
@@ -179,7 +197,7 @@ install_service() {
                     ;;
                 n|N)
                     if ! create_lxc_container "$service_name"; then
-                        log_error "LXC creation failed for $service_name — aborting install"
+                        log_error "LXC creation failed for $service_name ??? aborting install"
                         return 1
                     fi
                     run_service_in_lxc "$LAST_CREATED_CTID" "$service_name" install
@@ -335,12 +353,12 @@ create_lxc_container() {
     fi
     # Validasi/listing bridge sebelum create (hindari bridge salah)
     bridge="$(ensure_valid_bridge "$bridge")"
-    [[ -z "$bridge" ]] && { log_error "Bridge tidak dipilih — aborting"; return 1; }
+    [[ -z "$bridge" ]] && { log_error "Bridge tidak dipilih ??? aborting"; return 1; }
 
     local picked
     picked=$(pick_lxc_template)
     if [[ -z "$picked" ]]; then
-        log_error "No template selected — aborting LXC creation"
+        log_error "No template selected ??? aborting LXC creation"
         return 1
     fi
     local storage="${picked%%:vztmpl/*}"
