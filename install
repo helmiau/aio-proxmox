@@ -9,15 +9,324 @@ source "$REPO_ROOT/lib/env-manager.sh"
 source "$REPO_ROOT/lib/backup.sh"
 # Pastikan pct/qm tersedia di semua sesi SSH (symlink + profile.d)
 setup_pve_path
-# P13: --version flag
-if [[ "${1:-}" == "--version" || "${1:-}" == "-v" ]]; then
-    echo "aio-proxmox $(get_script_version)"
-    exit 0
-fi
 
 # P8: Auto-init ENVIRONMENT if missing
 init_env
 load_env
+
+# ============================================================
+# CLI one-liner mode (non-interactive) — gaya subcommand Git
+#   install svc -i 9router,hermes      manage service (alias: install -i ...)
+#   install svc -l                     list installed + available
+#   install pve install|repair|reinstall
+#   install debian base|check-root|upgrade
+#   install net bridge|status
+#   install lxc list|start|stop|restart|create|destroy|edit-net <ctid>
+#   install env edit|show
+#   install repo update
+#   install updater --all
+#   install -h / -v
+# ============================================================
+cli_usage() {
+    cat <<EOF
+Usage: install [AREA] [AKSI] [OPTIONS]
+
+AREA (default: svc jika argumen pertama flag aksi):
+  svc     Manajemen service        (install|update|uninstall|reinstall|backup|restore|list)
+  pve     Setup Proxmox VE         (install|repair|reinstall)
+  debian  Setup Debian             (base|check-root|upgrade)
+  net     Network                  (bridge|status)
+  lxc     LXC management           (list|start|stop|restart|create|destroy|edit-net)
+  env     ENVIRONMENT              (edit|show)
+  repo    Update repo              (update)
+  updater Update services          (--all|--list|<svc>)
+
+AKSI service (area svc):
+  -i, --install <svc>[,<svc>...]   Install service(s)
+  -u, --update <svc>[,<svc>...]    Update service(s)
+  -x, --uninstall <svc>[...]       Uninstall service(s)
+  -r, --reinstall <svc>[...]       Reinstall service(s)
+  -b, --backup <svc>[...]          Backup data service
+  -B, --restore <svc>              Restore service dari backup
+  -l, --list                       List installed + available
+
+Opsi:
+  -t, --target <host|lxc-new|lxc>  Placement target (untuk install)
+  -c, --ctid <CTID>                CTID untuk target lxc
+  -d, --dest <dir|telegram>        Backup destination
+  -h, --help                       Bantuan ini
+  -v, --version                    Versi script
+
+Contoh:
+  install svc -i 9router,hermes
+  install svc -i 9router -t lxc -c 101
+  install svc -u 9router
+  install svc -b 9router -d telegram
+  install pve repair
+  install lxc list
+  install lxc create
+  install env edit
+  install repo update
+  install updater --all
+EOF
+}
+
+# --- Area: svc (service management) ---
+cli_area_svc() {
+    local action="" services=() target="" ctid="" dest="${BACKUP_TARGET:-dir}"
+    while [[ $# -gt 0 ]]; do
+        case "$1" in
+            -i|--install) action="install"; shift ;;
+            -u|--update) action="update"; shift ;;
+            -x|--uninstall) action="uninstall"; shift ;;
+            -r|--reinstall) action="reinstall"; shift ;;
+            -b|--backup) action="backup"; shift ;;
+            -B|--restore) action="restore"; shift ;;
+            -l|--list) action="list"; shift ;;
+            -t|--target) target="$2"; shift 2 ;;
+            -c|--ctid) ctid="$2"; shift 2 ;;
+            -d|--dest) dest="$2"; shift 2 ;;
+            -h|--help) cli_usage; exit 0 ;;
+            -v|--version) echo "aio-proxmox $(get_script_version)"; exit 0 ;;
+            -*) echo "Unknown option: $1"; cli_usage; exit 1 ;;
+            *)
+                IFS=',' read -ra parts <<< "$1"
+                for p in "${parts[@]}"; do
+                    local svc=""
+                    if svc=$(service_name_by_index "$p"); then
+                        services+=("$svc")
+                    else
+                        services+=("$p")
+                    fi
+                done
+                shift
+                ;;
+        esac
+    done
+
+    [[ -z "$action" ]] && { cli_usage; exit 1; }
+
+    if [[ "$action" == "list" ]]; then
+        echo "Available services:"
+        printf '  %s\n' "${SERVICES[@]}"
+        echo "Installed services:"
+        local s
+        for s in "${SERVICES[@]}"; do
+            is_service_installed "$s" && echo "  - $s"
+        done
+        exit 0
+    fi
+
+    [[ ${#services[@]} -eq 0 ]] && { echo "Service tidak diberikan untuk aksi $action"; cli_usage; exit 1; }
+
+    if [[ -n "$target" ]]; then
+        local mode="$target"
+        case "$target" in
+            host) mode="host" ;;
+            lxc-new) mode="lxc-new" ;;
+            lxc)
+                mode="lxc-existing"
+                [[ -z "$ctid" ]] && { echo "-t lxc butuh -c <CTID>"; exit 1; }
+                ;;
+            *) echo "Target tak dikenal: $target (host|lxc-new|lxc)"; exit 1 ;;
+        esac
+        for s in "${services[@]}"; do
+            export "INSTALL_${s^^}=$mode"
+        done
+        if [[ -n "$ctid" ]]; then
+            for s in "${services[@]}"; do
+                export "TARGET_${s^^}_CTID=$ctid"
+            done
+        fi
+    fi
+
+    local rc=0
+    for svc in "${services[@]}"; do
+        case "$action" in
+            install) install_service "$svc"; rc=$? ;;
+            update) update_service "$svc"; rc=$? ;;
+            uninstall) uninstall_service "$svc"; rc=$? ;;
+            reinstall) reinstall_service "$svc"; rc=$? ;;
+            backup) backup_service "$svc" "$dest"; rc=$? ;;
+            restore) restore_service "$svc"; rc=$? ;;
+        esac
+        [[ $rc -eq 2 ]] && break
+    done
+    exit $rc
+}
+
+# --- Area: pve (setup Proxmox) ---
+cli_area_pve() {
+    local aks="${1:-}"
+    case "$aks" in
+        install) bash "$REPO_ROOT/scripts/03-install-proxmox-ve9.sh" install ;;
+        repair) bash "$REPO_ROOT/scripts/03-install-proxmox-ve9.sh" repair ;;
+        reinstall) bash "$REPO_ROOT/scripts/03-install-proxmox-ve9.sh" reinstall ;;
+        *) echo "install pve <install|repair|reinstall>"; exit 1 ;;
+    esac
+}
+
+# --- Area: debian ---
+cli_area_debian() {
+    local aks="${1:-}"
+    case "$aks" in
+        base) bash "$REPO_ROOT/scripts/01-debian-base.sh" ;;
+        check-root) bash "$REPO_ROOT/scripts/02-check-root-26gb.sh" ;;
+        upgrade) bash "$REPO_ROOT/scripts/upgrade-debian.sh" ;;
+        *) echo "install debian <base|check-root|upgrade>"; exit 1 ;;
+    esac
+}
+
+# --- Area: net ---
+cli_area_net() {
+    local aks="${1:-}"
+    case "$aks" in
+        bridge) bash "$REPO_ROOT/scripts/04-proxmox-bridges-nat.sh" ;;
+        *) echo "install net <bridge>"; exit 1 ;;
+    esac
+}
+
+# --- Area: lxc ---
+cli_area_lxc() {
+    local aks="${1:-}" arg2="${2:-}"
+    case "$aks" in
+        list) pct list ;;
+        start) [[ -z "$arg2" ]] && { echo "install lxc start <ctid>"; exit 1; }; pct start "$arg2" ;;
+        stop) [[ -z "$arg2" ]] && { echo "install lxc stop <ctid>"; exit 1; }; pct stop "$arg2" ;;
+        restart) [[ -z "$arg2" ]] && { echo "install lxc restart <ctid>"; exit 1; }; pct reboot "$arg2" ;;
+        create) manage_lxc_create ;;
+        destroy) [[ -z "$arg2" ]] && { echo "install lxc destroy <ctid>"; exit 1; }; pct destroy "$arg2" ;;
+        edit-net) [[ -z "$arg2" ]] && { echo "install lxc edit-net <ctid>"; exit 1; }; manage_lxc_edit_net "$arg2" ;;
+        *) echo "install lxc <list|start|stop|restart|create|destroy|edit-net>"; exit 1 ;;
+    esac
+}
+
+# --- Area: env ---
+cli_area_env() {
+    local aks="${1:-}"
+    case "$aks" in
+        edit) edit_env ;;
+        show) cat "$REPO_ROOT/ENVIRONMENT" ;;
+        *) echo "install env <edit|show>"; exit 1 ;;
+    esac
+}
+
+# --- Area: repo ---
+cli_area_repo() {
+    case "${1:-}" in
+        update) git -C "$REPO_ROOT" pull ;;
+        *) echo "install repo <update>"; exit 1 ;;
+    esac
+}
+
+# --- Dispatcher utama ---
+cli_main() {
+    local first="${1:-}"
+    case "$first" in
+        svc) shift; cli_area_svc "$@" ;;
+        pve) shift; cli_area_pve "$@" ;;
+        debian) shift; cli_area_debian "$@" ;;
+        net) shift; cli_area_net "$@" ;;
+        lxc) shift; cli_area_lxc "$@" ;;
+        env) shift; cli_area_env "$@" ;;
+        repo) shift; cli_area_repo "$@" ;;
+        updater) shift; bash "$REPO_ROOT/updater" "$@" ;;
+        *)
+            # Fallback: flag aksi langsung = area svc
+            if [[ "$first" == -* ]]; then
+                cli_area_svc "$@"
+            else
+                cli_usage; exit 1
+            fi
+            ;;
+    esac
+}
+                # Nilai service mengikuti flag aksi
+                if [[ "$1" =~ ^-[iu xr bB]+$ && ${#1} -eq 2 ]]; then
+                    # sudah ditangkap; arg berikut = service list
+                    action="$1"; shift
+                else
+                    echo "Unknown option: $1"; cli_usage; exit 1
+                fi
+                ;;
+            *)
+                # Non-flag = daftar service untuk aksi sebelumnya
+                if [[ -z "$action" ]]; then
+                    echo "Perlu flag aksi terlebih dahulu (-i/-u/-x/-r/-b/-B)"; cli_usage; exit 1
+                fi
+                IFS=',' read -ra parts <<< "$1"
+                for p in "${parts[@]}"; do
+                    local svc=""
+                    if svc=$(service_name_by_index "$p"); then
+                        services+=("$svc")
+                    else
+                        services+=("$p")
+                    fi
+                done
+                shift
+                ;;
+        esac
+    done
+
+    [[ -z "$action" ]] && { cli_usage; exit 1; }
+
+    case "$action" in
+        list)
+            echo "Available services:"
+            printf '  %s\n' "${SERVICES[@]}"
+            echo "Installed services:"
+            local s
+            for s in "${SERVICES[@]}"; do
+                is_service_installed "$s" && echo "  - $s"
+            done
+            exit 0
+            ;;
+    esac
+
+    [[ ${#services[@]} -eq 0 ]] && { echo "Service tidak diberikan untuk aksi $action"; cli_usage; exit 1; }
+
+    # Terapkan target/ctid sebagai mode install
+    if [[ -n "$target" ]]; then
+        local mode="$target"
+        case "$target" in
+            host) mode="host" ;;
+            lxc-new) mode="lxc-new" ;;
+            lxc)
+                mode="lxc-existing"
+                [[ -z "$ctid" ]] && { echo "-t lxc butuh -c <CTID>"; exit 1; }
+                ;;
+            *) echo "Target tak dikenal: $target (host|lxc-new|lxc)"; exit 1 ;;
+        esac
+        # Override mode via env untuk tiap service
+        for s in "${services[@]}"; do
+            export "INSTALL_${s^^}=$mode"
+        done
+        if [[ -n "$ctid" ]]; then
+            for s in "${services[@]}"; do
+                export "TARGET_${s^^}_CTID=$ctid"
+            done
+        fi
+    fi
+
+    local rc=0
+    for svc in "${services[@]}"; do
+        case "$action" in
+            install) install_service "$svc"; rc=$? ;;
+            update) update_service "$svc"; rc=$? ;;
+            uninstall) uninstall_service "$svc"; rc=$? ;;
+            reinstall) reinstall_service "$svc"; rc=$? ;;
+            backup) backup_service "$svc" "$dest"; rc=$? ;;
+            restore) restore_service "$svc"; rc=$? ;;
+        esac
+        [[ $rc -eq 2 ]] && break
+    done
+    exit $rc
+}
+
+# CLI mode: jika ada argumen non-interaktif (bukan hanya -v/--version)
+if [[ $# -gt 0 ]]; then
+    cli_main "$@"
+fi
 
 # Service index mapping
 SERVICES=(cloudflared tailscale mihomo 9router headroom hermes hermes-webui storage copyparty xui ttyd ohmyzsh fastfetch health mikrotik)
@@ -36,7 +345,7 @@ parse_selection() {
     local input="$1"
     local action="" services=()
     
-    if [[ "$input" =~ ^([1-7])-(.+)$ ]]; then
+    if [[ "$input" =~ ^([1-8])-(.+)$ ]]; then
         action="${BASH_REMATCH[1]}"
         local list="${BASH_REMATCH[2]}"
         IFS=',' read -ra parts <<< "$list"
@@ -76,6 +385,7 @@ action_name() {
         5) echo "backup" ;;
         6) echo "restore" ;;
         7) echo "list-backup" ;;
+        8) echo "list" ;;
     esac
 }
 
@@ -89,7 +399,7 @@ manage_services() {
     done
     echo ""
     echo "Input format: <action>-<service1>,<service2>"
-    echo "  action: 1=install, 2=update, 3=uninstall, 4=reinstall, 5=backup, 6=restore, 7=list-backup"
+    echo "  action: 1=install, 2=update, 3=uninstall, 4=reinstall, 5=backup, 6=restore, 7=list-backup, 8=list"
     echo "  service: number or name (e.g. 1-1,2 = install cloudflared + tailscale)"
     echo "  single: '1' = install service #1, or type service name directly"
     echo "  99 = exit / cancel"
@@ -136,10 +446,64 @@ manage_services() {
             backup) backup_service "$svc" "${BACKUP_TARGET:-dir}"; rc=$? ;;
             restore) restore_service "$svc"; rc=$? ;;
             list-backup) list_backups "$svc"; rc=$? ;;
+            list)
+                # Tampilkan semua service yang terinstall
+                echo "Installed services:"
+                local s_inst
+                for s_inst in "${SERVICES[@]}"; do
+                    if is_service_installed "$s_inst"; then
+                        echo "  - $s_inst"
+                    fi
+                done
+                rc=0
+                break
+                ;;
         esac
         # Cancel (rc=2) dari install_service → hentikan loop, kembali ke prompt service
         [[ $rc -eq 2 ]] && break
     done
+}
+
+# Create LXC (dipakai menu 6 & CLI lxc create)
+manage_lxc_create() {
+    read -r -p "CTID: " ctid
+    read -r -p "Hostname: " host
+    local tmpl
+    tmpl=$(pick_lxc_template)
+    [[ -z "$tmpl" ]] && { echo "No template selected"; return; }
+    read -r -p "Disk storage (e.g. local-lvm, Enter=local): " disk_storage
+    disk_storage="${disk_storage:-local-lvm}"
+    read -r -p "Disk size GB (Enter=8): " disk_size
+    disk_size="${disk_size:-8}"
+    local bridge_choice
+    bridge_choice=$(pick_bridge)
+    [[ -z "$bridge_choice" ]] && { echo "Bridge tidak dipilih"; return; }
+    pct create "$ctid" "$tmpl" \
+        --hostname "$host" \
+        --rootfs "$disk_storage:$disk_size" \
+        --net0 "name=eth0,bridge=$bridge_choice,ip=dhcp" --unprivileged 1
+}
+
+# Edit network LXC (dipakai menu 8 & CLI lxc edit-net)
+manage_lxc_edit_net() {
+    local ctid="${1:-}"
+    [[ -z "$ctid" ]] && read -r -p "CTID: " ctid
+    local net0
+    net0=$(pct config "$ctid" 2>/dev/null | grep -E '^net0:' | head -n1)
+    if [[ -z "$net0" ]]; then
+        echo "Tidak ada net0 pada LXC $ctid"
+        return
+    fi
+    local cur_bridge
+    cur_bridge=$(echo "$net0" | grep -oE 'bridge=[^,]+' | head -n1 | cut -d= -f2)
+    echo "net0 saat ini: $net0"
+    local newbridge
+    newbridge=$(pick_bridge)
+    [[ -z "$newbridge" ]] && { echo "Batal"; return; }
+    local newnet0
+    newnet0=$(echo "$net0" | sed "s/bridge=$cur_bridge/bridge=$newbridge/")
+    pct set "$ctid" --net0 "$newnet0"
+    echo "net0 diperbarui: $newnet0"
 }
 
 manage_lxc() {
@@ -215,7 +579,7 @@ manage_lxc() {
 show_menu() {
   clear
   echo "===================================================="
-  echo "   Proxmox Services Manager v$(get_script_version)"
+  echo "   Proxmox AIO Manager v$(get_script_version)"
   echo "===================================================="
   echo "0)  Check Environment"
   echo "1)  Debian Base Setup (incl. 13.6.0 upgrade)"
