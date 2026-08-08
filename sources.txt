@@ -134,5 +134,25 @@ https://docs.sanaei.dev/docs/
 https://github.com/MHSanaei/3x-ui
 https://github.com/MHSanaei/3x-ui/blob/main/README.md
 
+################
+Obsidian LiveSync
+################
+https://community.obsidian.md/plugins/obsidian-livesync
+
+################
+OmniRoute
+################
+https://github.com/diegosouzapw/OmniRoute
+https://omniroute.online/
+https://github.com/diegosouzapw/OmniRoute#-documentation
+
+################
+RustDesk
+################
+https://github.com/rustdesk/rustdesk-server
+https://rustdesk.com/docs/en/self-host/rustdesk-server-oss/
+
+################
 Another sources
+################
 - https://github.com/tjengbudi/proxmox-debian13

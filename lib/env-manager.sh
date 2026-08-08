@@ -169,6 +169,21 @@ prompt_service_env() {
         "OHMYZSH")
             # no configurable ENV vars
             ;;
+        "OBSIDIAN")
+            env_set OBSIDIAN_IP        "$(env_prompt "Livesync IP" "${OBSIDIAN_IP:-10.10.40.80}")"
+            env_set OBSIDIAN_PORT      "$(env_prompt "Livesync Port (CouchDB)" "${OBSIDIAN_PORT:-5984}")"
+            env_set OBSIDIAN_COUCHDB_USER "$(env_prompt "CouchDB User" "${OBSIDIAN_COUCHDB_USER:-admin}")"
+            env_set OBSIDIAN_COUCHDB_PASSWORD "$(env_prompt "CouchDB Password" "${OBSIDIAN_COUCHDB_PASSWORD:-changeme123}")"
+            ;;
+        "OMNIROUTE")
+            env_set OMNIROUTE_IP       "$(env_prompt "OmniRoute IP" "${OMNIROUTE_IP:-10.10.40.85}")"
+            env_set OMNIROUTE_PORT     "$(env_prompt "OmniRoute Port" "${OMNIROUTE_PORT:-8080}")"
+            ;;
+        "RUSTDESK")
+            env_set RUSTDESK_IP        "$(env_prompt "RustDesk IP" "${RUSTDESK_IP:-10.10.40.90}")"
+            env_set RUSTDESK_SIGNAL_PORT "$(env_prompt "RustDesk Signal Port" "${RUSTDESK_SIGNAL_PORT:-21116}")"
+            env_set RUSTDESK_RELAY_PORT "$(env_prompt "RustDesk Relay Port" "${RUSTDESK_RELAY_PORT:-21117}")"
+            ;;
         *)
             log_warn "No interactive prompt defined for ${service}"
             return 1

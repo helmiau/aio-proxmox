@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 # install — Proxmox Services Manager (CLI) — aio-proxmox v4.2.5
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -329,7 +329,7 @@ if [[ $# -gt 0 ]]; then
 fi
 
 # Service index mapping
-SERVICES=(cloudflared tailscale mihomo 9router headroom hermes hermes-webui storage copyparty xui ttyd ohmyzsh fastfetch health mikrotik)
+SERVICES=(cloudflared tailscale mihomo 9router headroom hermes hermes-webui storage copyparty xui ttyd ohmyzsh fastfetch health mikrotik obsidian omniroute rustdesk)
 
 service_name_by_index() {
     local idx="$1"

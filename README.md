@@ -1,4 +1,4 @@
-﻿# aio-proxmox — Proxmox Services Manager v4.2.5
+# aio-proxmox — Proxmox Services Manager v4.2.5
 
 ## Overview
 
@@ -79,13 +79,16 @@ di dalam container **sebelum** service di-install — template LXC minimal tidak
 | Fastfetch | Host | System info |
 | Health Check | Host | Install verification |
 | MikroTik CHR | VM | Patched RouterOS |
+| Obsidian Obsidian | LXC | CouchDB sync (Docker) |
+| OmniRoute | LXC | Router UI |
+| RustDesk Server | LXC | Remote desktop server (hbbs/hbbr) |
 
 ## Documentation
 
-- **PRD v4.2.4**: [PRD.md](PRD.md) — full architecture, principles, requirements
+- **PRD v4.2.5**: [PRD.md](PRD.md) — full architecture, principles, requirements
 - **ENVIRONMENT**: [ENVIRONMENT.example](ENVIRONMENT.example) — all variables
 - **Scripts**: `scripts/` — numbered steps + service scripts
-- **Libs**: `lib/` — shared helpers (common, service-actions, lxc, logging, env-manager)
+- **Libs**: `lib/` — shared helpers (common, service-actions, lxc, logging, env-manager, backup)
 
 ## Usage
 
