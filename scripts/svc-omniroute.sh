@@ -1,7 +1,8 @@
 #!/bin/bash
-# svc-omniroute.sh — OmniRoute lifecycle
+# svc-omniroute.sh — OmniRoute AI Gateway lifecycle
 # Source: https://github.com/diegosouzapw/OmniRoute
-# Install: git clone + install script (PHP-based router UI)
+# Install: npm install -g omniroute (Node >= 22.22.2)
+# Dokumen: https://omniroute.online/ — "Works second you install it"
 set -euo pipefail
 
 REPO_ROOT="${REPO_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
@@ -19,9 +20,10 @@ ACTION="${1:-status}"
 CTID="${OMNIROUTE_CTID:-109}"
 HOSTNAME="${OMNIROUTE_HOSTNAME:-omniroute}"
 IP="${OMNIROUTE_IP:-10.10.40.85}"
-PORT="${OMNIROUTE_PORT:-8080}"
-INSTALL_DIR="${OMNIROUTE_DIR:-/opt/omniroute}"
-REPO_URL="${OMNIROUTE_REPO_URL:-https://github.com/diegosouzapw/OmniRoute.git}"
+PORT="${OMNIROUTE_PORT:-20128}"   # default resmi OmniRoute
+NODE_MAJOR="${NODE_MAJOR:-22}"
+DATA_DIR="${OMNIROUTE_DIR:-/var/lib/omniroute}"
+SERVICE_USER="root"
 
 ensure_curl
 
@@ -29,15 +31,18 @@ log_service() {
     log_info "[$SERVICE_NAME] $1"
 }
 
-ensure_deps() {
-    # PHP + composer (atau bun/php sesuai requirements OmniRoute)
-    if command -v apk >/dev/null 2>&1; then
-        apk add --no-cache git curl php php-json php-mbstring php-pdo php-openssl composer 2>/dev/null || \
-        apk add --no-cache git curl php composer 2>/dev/null || true
-    else
-        DEBIAN_FRONTEND=noninteractive apt-get install -y git curl php-cli php-json php-mbstring composer 2>/dev/null || \
-        DEBIAN_FRONTEND=noninteractive apt-get install -y git curl php-cli composer 2>/dev/null || true
+ensure_node() {
+    if ! command -v node >/dev/null 2>&1; then
+        log_service "Installing Node.js $NODE_MAJOR"
+        if command -v apk >/dev/null 2>&1; then
+            apk add --no-cache nodejs npm 2>/dev/null || true
+        else
+            pkg_install curl ca-certificates gnupg 2>/dev/null || true
+            curl -fsSL "https://deb.nodesource.com/setup_${NODE_MAJOR}.x" | bash - 2>/dev/null || true
+            pkg_install nodejs
+        fi
     fi
+    log_service "Node.js $(node --version) ready"
 }
 
 action_install() {
@@ -49,32 +54,25 @@ action_install() {
     fi
 
     ensure_curl
-    ensure_deps
-    mkdir -p "$INSTALL_DIR"
+    ensure_node
+    mkdir -p "$DATA_DIR"
 
-    log_service "Cloning OmniRoute"
-    if [[ -d "$INSTALL_DIR/.git" ]]; then
-        cd "$INSTALL_DIR" && git pull
-    else
-        git clone "$REPO_URL" "$INSTALL_DIR"
-    fi
+    log_service "Menginstal omniroute (npm global)..."
+    OMNIROUTE_SKIP_POSTINSTALL=1 npm install -g omniroute 2>/dev/null || npm install -g omniroute || {
+        log_error "Gagal npm install omniroute"; return 1; }
 
-    cd "$INSTALL_DIR"
-    if [[ -f composer.json ]]; then
-        composer install --no-interaction 2>/dev/null || true
-    fi
-
-    # Jalankan via php built-in server (fallback) — sesuaikan dokumentasi OmniRoute
-    log_service "Menjalankan OmniRoute di port $PORT"
     if command -v systemctl >/dev/null 2>&1; then
         cat > /etc/systemd/system/omniroute.service <<EOF
 [Unit]
-Description=OmniRoute
+Description=OmniRoute AI Gateway
 After=network.target
 
 [Service]
-WorkingDirectory=$INSTALL_DIR
-ExecStart=/usr/bin/php -S 0.0.0.0:$PORT -t public
+Type=simple
+User=$SERVICE_USER
+Environment=PORT=$PORT
+Environment=OMNIROUTE_DATA_DIR=$DATA_DIR
+ExecStart=$(command -v omniroute) serve
 Restart=on-failure
 RestartSec=5
 
@@ -85,13 +83,17 @@ EOF
         svc_enable omniroute
         svc_start omniroute
     else
-        log_warn "No systemd — jalankan manual: cd $INSTALL_DIR && php -S 0.0.0.0:$PORT -t public"
+        log_warn "No systemd — jalankan manual: omniroute serve (port $PORT)"
     fi
+
+    log_info "Dashboard: http://$IP:$PORT"
+    log_info "API:       http://$IP:$PORT/v1"
+    log_info "Coding tool: base URL http://$IP:$PORT/v1, model auto (zero-config, free tier)"
+    log_info "Dokumen: https://omniroute.online/ dan https://github.com/diegosouzapw/OmniRoute"
 
     register_registry
     mark_service_installed "$SERVICE_NAME"
     log_service "Install completed"
-    log_info "OmniRoute: http://$IP:$PORT (lihat dokumentasi repo untuk setup)"
 }
 
 register_registry() {
@@ -110,7 +112,7 @@ action_uninstall() {
         rm -f /etc/systemd/system/omniroute.service
         systemctl daemon-reload
     fi
-    rm -rf "$INSTALL_DIR" 2>/dev/null || true
+    npm uninstall -g omniroute 2>/dev/null || true
     unregister_registry
     local status_file="/var/lib/homelab/service_status.json"
     if [[ -f "$status_file" ]]; then
@@ -123,8 +125,7 @@ action_uninstall() {
 action_update() {
     log_service "Updating"
     if ! is_service_installed "$SERVICE_NAME"; then action_install; return; fi
-    cd "$INSTALL_DIR" && git pull
-    [[ -f composer.json ]] && composer install --no-interaction 2>/dev/null || true
+    npm update -g omniroute 2>/dev/null || npm install -g omniroute
     svc_start omniroute 2>/dev/null || true
     log_service "Update completed"
 }
@@ -135,6 +136,8 @@ action_status() {
         if command -v systemctl >/dev/null 2>&1; then
             systemctl status omniroute --no-pager 2>/dev/null | head -n 5 || true
         fi
+        curl -s "http://127.0.0.1:$PORT/v1/models" 2>/dev/null | head -c 200 || true
+        echo ""
     else
         log_service "Status: NOT INSTALLED"
     fi

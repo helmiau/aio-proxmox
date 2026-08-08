@@ -333,13 +333,12 @@ OBSIDIAN_DATA_DIR='/var/lib/obsidian'
 OBSIDIAN_COUCHDB_VERSION='3.3.3'
 OBSIDIAN_INSTALL_MODE='ask'
 
-# --- OMNITROUTE ---
+# --- OMNITROUTE (AI Gateway, fork 9router) ---
 OMNIROUTE_CTID='109'
 OMNIROUTE_HOSTNAME='omniroute'
 OMNIROUTE_IP='10.10.40.85'
-OMNIROUTE_PORT='8080'
-OMNIROUTE_DIR='/opt/omniroute'
-OMNIROUTE_REPO_URL='https://github.com/diegosouzapw/OmniRoute.git'
+OMNIROUTE_PORT='20128'   # default resmi OmniRoute (sama dengan 9router)
+OMNIROUTE_DIR='/var/lib/omniroute'
 OMNIROUTE_INSTALL_MODE='ask'
 
 # --- RUSTDESK SERVER (hbbs + hbbr via Docker) ---
