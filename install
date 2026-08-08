@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 # install — Proxmox Services Manager (CLI) — aio-proxmox v4.2.5
 set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -240,87 +240,6 @@ cli_main() {
             fi
             ;;
     esac
-}
-                # Nilai service mengikuti flag aksi
-                if [[ "$1" =~ ^-[iu xr bB]+$ && ${#1} -eq 2 ]]; then
-                    # sudah ditangkap; arg berikut = service list
-                    action="$1"; shift
-                else
-                    echo "Unknown option: $1"; cli_usage; exit 1
-                fi
-                ;;
-            *)
-                # Non-flag = daftar service untuk aksi sebelumnya
-                if [[ -z "$action" ]]; then
-                    echo "Perlu flag aksi terlebih dahulu (-i/-u/-x/-r/-b/-B)"; cli_usage; exit 1
-                fi
-                IFS=',' read -ra parts <<< "$1"
-                for p in "${parts[@]}"; do
-                    local svc=""
-                    if svc=$(service_name_by_index "$p"); then
-                        services+=("$svc")
-                    else
-                        services+=("$p")
-                    fi
-                done
-                shift
-                ;;
-        esac
-    done
-
-    [[ -z "$action" ]] && { cli_usage; exit 1; }
-
-    case "$action" in
-        list)
-            echo "Available services:"
-            printf '  %s\n' "${SERVICES[@]}"
-            echo "Installed services:"
-            local s
-            for s in "${SERVICES[@]}"; do
-                is_service_installed "$s" && echo "  - $s"
-            done
-            exit 0
-            ;;
-    esac
-
-    [[ ${#services[@]} -eq 0 ]] && { echo "Service tidak diberikan untuk aksi $action"; cli_usage; exit 1; }
-
-    # Terapkan target/ctid sebagai mode install
-    if [[ -n "$target" ]]; then
-        local mode="$target"
-        case "$target" in
-            host) mode="host" ;;
-            lxc-new) mode="lxc-new" ;;
-            lxc)
-                mode="lxc-existing"
-                [[ -z "$ctid" ]] && { echo "-t lxc butuh -c <CTID>"; exit 1; }
-                ;;
-            *) echo "Target tak dikenal: $target (host|lxc-new|lxc)"; exit 1 ;;
-        esac
-        # Override mode via env untuk tiap service
-        for s in "${services[@]}"; do
-            export "INSTALL_${s^^}=$mode"
-        done
-        if [[ -n "$ctid" ]]; then
-            for s in "${services[@]}"; do
-                export "TARGET_${s^^}_CTID=$ctid"
-            done
-        fi
-    fi
-
-    local rc=0
-    for svc in "${services[@]}"; do
-        case "$action" in
-            install) install_service "$svc"; rc=$? ;;
-            update) update_service "$svc"; rc=$? ;;
-            uninstall) uninstall_service "$svc"; rc=$? ;;
-            reinstall) reinstall_service "$svc"; rc=$? ;;
-            backup) backup_service "$svc" "$dest"; rc=$? ;;
-            restore) restore_service "$svc"; rc=$? ;;
-        esac
-        [[ $rc -eq 2 ]] && break
-    done
-    exit $rc
 }
 
 # CLI mode: jika ada argumen non-interaktif (bukan hanya -v/--version)
