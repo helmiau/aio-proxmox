@@ -1,5 +1,5 @@
 ################
-9router
+9router  (debian,host,alpine)
 ################
 - https://github.com/decolua/9router
 - https://9router.com/
@@ -7,7 +7,7 @@
 - https://www.npmjs.com/package/9router
 
 ################
-Hermes Agent
+Hermes Agent  (debian,host)
 ################
 - https://github.com/nousresearch/hermes-agent
 - https://hermes-agent.nousresearch.com/docs/getting-started/installation
@@ -15,7 +15,7 @@ Hermes Agent
 - https://hermes-agent.org/#quickstart
 
 ################
-Headroom AI  [proxy]
+Headroom AI  [proxy]  (debian,host)
 ################
 - https://github.com/headroomlabs-ai/headroom
 - https://headroomlabs-ai.github.io/headroom/
@@ -29,7 +29,7 @@ Headroom AI  [proxy]
 - run headroom with: headroom proxy --port 8787 --memory
 
 ################
-Cloudflared
+Cloudflared (host,debian,alpine)
 ################
 - https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/
 - https://developers.cloudflare.com/cloudflare-one/networks/connectors/cloudflare-tunnel/downloads/update-cloudflared/
@@ -44,7 +44,7 @@ echo 'deb [signed-by=/usr/share/keyrings/cloudflare-public-v2.gpg] https://pkg.c
 sudo apt-get update && sudo apt-get install cloudflared
 
 ################
-Mihomo (Metacubex Dashboard and Clash TUI Dashboard)
+Mihomo (Metacubex Dashboard and Clash TUI Dashboard) (host,debian,alpine)
 ################
 - https://github.com/MetaCubeX/mihomo
 - https://github.com/MetaCubeX/metacubexd
@@ -57,7 +57,7 @@ Mihomo (Metacubex Dashboard and Clash TUI Dashboard)
 - https://github.com/JohanChane/clashtui
 
 ################
-File Browser Quantum (Apache 2.0 — Gratis)
+File Browser Quantum (Apache 2.0 — Gratis) (host,debian,alpine)
 ################
 - https://filebrowserquantum.com/en/
 - https://filebrowserquantum.com/en/docs/integrations/office/about/
@@ -67,13 +67,13 @@ File Browser Quantum (Apache 2.0 — Gratis)
 - https://filebrowserquantum.com/en/docs/getting-started/linux/
 
 ################
-Hermes WebUI
+Hermes WebUI (debian,alpine,host)
 ################
 - https://github.com/nesquena/hermes-webui
 - https://get-hermes.ai/setup/#server
 
 ################
-Tailscale
+Tailscale (host,debian,alpine)
 ################
 - https://tailscale.com/docs/install/debian/debian-trixie
 - https://tailscale.com/docs/install/linux
@@ -81,7 +81,7 @@ Tailscale
 - https://tailscale.com/docs/integrations/proxmox
 
 ################
-TTYD
+TTYD  (host,debian,alpine)
 ################
 - https://github.com/tsl0922/ttyd
 - https://tsl0922.github.io/ttyd/
@@ -90,7 +90,7 @@ TTYD
 - https://formulae.brew.sh/formula/ttyd
 
 ################
-Oh My ZSH
+Oh My ZSH (host,debian,alpine)
 ################
 - https://ohmyz.sh/#install
 - https://github.com/romkatv/powerlevel10k#oh-my-zsh
@@ -103,31 +103,26 @@ Oh My ZSH
 - https://github.com/ohmyzsh/ohmyzsh/wiki/Themes
 
 ################
-Fastfetch
+Fastfetch (host,debian,alpine)
 ################
 # Fastfetch (pengganti aktif — ditulis dalam C, lebih cepat)
 - https://github.com/fastfetch-cli/fastfetch
 - https://itsfoss.com/neofetch-alternatives/
 
 ################
-Copyparty (NAS)
+Copyparty (NAS) (host,debian,alpine)
 ################
 - https://github.com/9001/copyparty
 
 ################
-MikroTik CHR Patched
+MikroTik CHR Patched (VM)
 ################
 Notes: Use chr-7.xx.x-legacy-bios.qcow2.zip for default image
 - https://github.com/elseif/MikroTikPatch
 - https://mikrotik.ltd/
 
 ################
-Health Check (svc-health.sh)
-################
-# [INTERNAL - custom monitoring script, no external source]
-
-################
-xray panel server (mini pc juga akan digunakan sebagai server VPN vless, vmess, shadowsocks, trojan, dll)
+xray panel server (debian,host) (mini pc juga akan digunakan sebagai server VPN vless, vmess, shadowsocks, trojan, dll)
 ################
 https://docs.sanaei.dev/
 https://docs.sanaei.dev/docs/
@@ -135,22 +130,27 @@ https://github.com/MHSanaei/3x-ui
 https://github.com/MHSanaei/3x-ui/blob/main/README.md
 
 ################
-Obsidian LiveSync
+Obsidian LiveSync (alpine,host)
 ################
 https://community.obsidian.md/plugins/obsidian-livesync
 
 ################
-OmniRoute
+OmniRoute (debian,host)
 ################
 https://github.com/diegosouzapw/OmniRoute
 https://omniroute.online/
 https://github.com/diegosouzapw/OmniRoute#-documentation
 
 ################
-RustDesk
+RustDesk Server (alpine,host)
 ################
 https://github.com/rustdesk/rustdesk-server
 https://rustdesk.com/docs/en/self-host/rustdesk-server-oss/
+
+################
+Health Check (svc-health.sh)
+################
+# [INTERNAL - custom monitoring script, no external source]
 
 ################
 Another sources
