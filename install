@@ -308,12 +308,40 @@ action_name() {
     esac
 }
 
+# Rekomendasi template OS per service (dari sources.txt)
+# Format: <os1,os2> = opsi yang didukung; urutan = rekomendasi prioritas
+service_os_hint() {
+    case "$1" in
+        9router)      echo "debian,alpine" ;;
+        hermes)       echo "debian" ;;
+        headroom)     echo "debian" ;;
+        cloudflared)  echo "host,debian,alpine" ;;
+        mihomo)       echo "host,debian,alpine" ;;
+        storage)      echo "host,debian,alpine" ;;
+        hermes-webui) echo "debian,alpine" ;;
+        tailscale)    echo "host,debian,alpine" ;;
+        ttyd)         echo "host,debian,alpine" ;;
+        ohmyzsh)      echo "host,debian,alpine" ;;
+        fastfetch)    echo "host,debian,alpine" ;;
+        copyparty)    echo "host,debian,alpine" ;;
+        mikrotik)     echo "VM" ;;
+        xui)          echo "debian,host" ;;
+        obsidian)     echo "alpine,host" ;;
+        omniroute)    echo "debian,host" ;;
+        rustdesk)     echo "alpine,host" ;;
+        health)       echo "host" ;;
+        *)            echo "debian" ;;
+    esac
+}
+
 manage_services() {
     echo ""
     echo "--- Available Services ---"
     local i=1
     for s in "${SERVICES[@]}"; do
-        printf "%2d) %s\n" "$i" "$s"
+        local hint
+        hint=$(service_os_hint "$s")
+        printf "%2d) %-14s [%s]\n" "$i" "$s" "$hint"
         ((i++))
     done
     echo ""
