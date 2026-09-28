@@ -80,7 +80,7 @@ create_vm() {
 
     # Set network
     virsh net-update vmbr0 add ip-dhcp-host \
-        "<host mac='52:54:00:$(printf '%02x:%02x' $((RANDOM%256)) $((RANDOM%256)))' name='$HOSTNAME' ip='$IP'/>
+        "<host mac='52:54:00:$(printf '%02x:%02x' $((RANDOM%256)) $((RANDOM%256)))' name='$HOSTNAME' ip='$IP'/>"
 
     # Start VM
     virsh start "$HOSTNAME"
@@ -88,7 +88,10 @@ create_vm() {
 
 # --- NAT port forward: publik:WINBOX_PORT -> MikroTik:WINBOX_PORT ---
 setup_nat_winbox() {
-    [[ "$NAT_ENABLE" != "yes" ]] && { log_service "NAT disabled (MIKROTIK_NAT_ENABLE=no)"; return 0; }
+    if [[ "$NAT_ENABLE" != "yes" ]]; then
+        log_service "NAT disabled (MIKROTIK_NAT_ENABLE=no)"
+        return 0
+    fi
     log_service "Setting up NAT: $NAT_PUBLIC_IF:$WINBOX_PORT -> $NAT_TARGET_IP:$WINBOX_PORT (WinBox)"
     # Pastikan IP forwarding aktif
     sysctl -w net.ipv4.ip_forward=1 >/dev/null 2>&1 || true
@@ -106,9 +109,11 @@ setup_nat_winbox() {
 
 # --- Cloudflare Tunnel TCP untuk WinBox (via cloudflared) ---
 setup_cf_tunnel_winbox() {
-    [[ "$CF_TUNNEL_ENABLE" != "yes" ]] && { log_service "Cloudflare tunnel disabled (MIKROTIK_CF_TUNNEL_ENABLE=no)"; return 0; }
+    if [[ "$CF_TUNNEL_ENABLE" != "yes" ]]; then
+        log_service "Cloudflare tunnel disabled (MIKROTIK_CF_TUNNEL_ENABLE=no)"
+        return 0
+    fi
     if ! command -v cloudflared >/dev/null 2>&1; then
-        log_warn "cloudflared tidak terpasang — skip Cloudflare tunnel (install service cloudflared dulu)"
         return 0
     fi
     local cf_cfg="/etc/cloudflared"
